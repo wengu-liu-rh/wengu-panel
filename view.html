@@ -130,9 +130,9 @@ var ICONS=['①','②','③','④','⑤','⑥'];
 function detect(lines){
   var secs=[], cur=null;
   lines.forEach(function(line){
-    var m = line.match(/^(【(.+?)】|(.{1,14})[:：])\s*$/);
+    var m = line.match(/^(【(.+?)】|([一二三四五六七八九十]+、.{1,20})|(.{1,14})[:：])\s*$/);
     var head = null;
-    if (m) head = m[2] || m[3];
+    if (m) head = m[2] || m[3] || m[4];
     else if (/^#\s+/.test(line)) head = line.replace(/^#\s+/,'');
     if (head){ cur={title:head, items:[]}; secs.push(cur); }
     else { if(!cur){ cur={title:'要点', items:[]}; secs.push(cur);} cur.items.push(line); }
@@ -168,7 +168,13 @@ function render(payload){
   var text = payload.text || '';
   document.getElementById('title').textContent = title;
   document.title = title;
-  var lines = String(text).split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
+  var t0 = String(text)
+    .replace(/\r/g, '')
+    .replace(/#{2,6}\s*/g, '\n')
+    .replace(/#\s+/g, '\n')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^\s*[-*•]\s+/gm, '- ');
+  var lines = t0.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
   if(!lines.length){ document.getElementById('body').innerHTML = '<div class="card"><p class="para">没有收到内容。</p></div>'; return; }
   var secs = detect(lines);
   var html='';
