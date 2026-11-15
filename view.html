@@ -151,6 +151,10 @@ function normalize(text){
 
 /* ---------- 解析 ---------- */
 function isHeading(line){
+  // 编号条目、要点符号，一律不当标题
+  if (/^\d+[\.、]/.test(line)) return null;
+  if (/^[-·•]/.test(line)) return null;
+  if (/^[A-DＡ-Ｄ][\.、]/.test(line)) return null;
   if (/^【.+】$/.test(line)) return line.replace(/^【|】$/g,'');
   if (/^[一二三四五六七八九十]+、.{1,24}$/.test(line)) return line;
   if (/^第[一二三四五六七八九十]+[章节部分].{0,20}$/.test(line)) return line;
@@ -294,7 +298,18 @@ function render(payload){
   var title = payload.title || '可视化讲解';
   document.getElementById('title').textContent = title;
   document.title = title;
-  var secs = parse(payload.text || '');
+  var raw = String(payload.text || '');
+  // 去掉与标题重复的首行（模型常把标题再写一遍）
+  var flatTitle = title.replace(/[·・\s]/g, '');
+  var secs = parse(raw).map(function(s){
+    if (s.title === '要点') {
+      s.blocks = s.blocks.filter(function(b){
+        var t = (b.text || '').replace(/[·・\s]/g, '');
+        return t !== flatTitle && t.length > 0;
+      });
+    }
+    return s;
+  }).filter(function(s){ return s.blocks.length > 0; });
   if (!secs.length) {
     document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
     return;
