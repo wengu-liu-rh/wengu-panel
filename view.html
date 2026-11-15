@@ -281,6 +281,7 @@ function renderSection(sec, idx){
     if (b.type === 'num') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
     if (b.type === 'para') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
     if (b.type === 'question') {
+      body += '<div class="qblock">';
       if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span>' + esc(b.text) + '</span></div>';
       if (b.options.length) {
         var gid = 'q' + idx + '_' + b.n;
@@ -289,9 +290,10 @@ function renderSection(sec, idx){
           body += '<button class="opt" data-k="' + o.k + '" onclick="pick(this)"><span class="k">' + o.k + '</span><span>' + esc(o.t) + '</span><span class="mark"></span></button>';
         });
         body += '</div>';
-        body += '<p class="ansline">正确答案：' + (b.answer || '') + '</p>';
+        body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
         if (!b.answer) body += '<p class="hintline">本题页内未附答案，可在对话里让温故批改。</p>';
       }
+      body += '</div>';
     }
   });
   flushBullets();
@@ -344,7 +346,7 @@ function pick(el){
   var opts = group ? group.querySelectorAll('.opt') : [el];
   Array.prototype.forEach.call(opts, function(b){ b.classList.remove('on','right','wrong'); var m = b.querySelector('.mark'); if (m) m.textContent = ''; });
 
-  var scope = group && group.parentNode ? group.parentNode : document;
+  var scope = (el.closest('.qblock')) || (group && group.parentNode) || document;
   var ansLine = scope.querySelector('.ansline');
   var hintLine = scope.querySelector('.hintline');
 
