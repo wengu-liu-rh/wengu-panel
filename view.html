@@ -135,11 +135,19 @@ function normalize(text){
     .replace(/\r/g, '')
     .replace(/#{1,6}\s*/g, '\n')
     .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/^\s*[-*•]\s+/gm, '- ');
+    .replace(/^\s*[-*•]\s+/gm, '- ')
+    // 箭头后面通常是答案，单独成行
+    .replace(/\s*[→➜➤]\s*/g, '\n')
+    // 「正确答案：X」「答案：X」也单独成行
+    .replace(/((?:正确)?答案\s*[:：])/g, '\n$1');
   // 把一行里的多个选项拆开：A. xx B. xx C. xx D. xx
   return t.split('\n').map(function(line){
     var s = line.trim();
     if (!s) return '';
+    // 题干后紧跟内联选项：在 A. 前断行
+    if (!/^[A-DＡ-Ｄ][\.、]/.test(s)) {
+      s = s.replace(/\s*([AＡ][\.、])/, '\n$1');
+    }
     var marks = s.match(/(^|\s)[A-DＡ-Ｄ][\.、]\s*/g);
     if (marks && marks.length >= 2) {
       var parts = s.split(/(?=(?:^|\s)[A-DＡ-Ｄ][\.、]\s*)/).map(function(x){ return x.trim(); }).filter(Boolean);
@@ -188,11 +196,12 @@ function buildBlocks(items){
   while (i < items.length) {
     var line = items[i];
 
-    // 答案行（支持「答案：B」「正确答案：B」「【答案】B」）
-    var ans = line.match(/^(?:正确)?答案\s*[:：]?\s*([A-DＡ-Ｄ])/) || line.match(/答案\s*[:：]\s*([A-DＡ-Ｄ])/);
+    // 答案行（支持「答案：B」「正确答案：B」「答案：C、D」）
+    var ans = line.match(/^(?:正确)?答案\s*[:：]?\s*([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)/);
     if (ans) {
+      var letters = (ans[1].toUpperCase().match(/[A-D]/g) || []).join(',');
       var q = lastQ();
-      if (q) { q.answer = ans[1].toUpperCase(); }
+      if (q && letters) { q.answer = letters; }
       else { blocks.push({ type: 'para', text: line }); }
       i++; continue;
     }
@@ -340,15 +349,16 @@ function pick(el){
   var hintLine = scope.querySelector('.hintline');
 
   if (answer) {
+    var answers = answer.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
     Array.prototype.forEach.call(opts, function(b){
       var k = b.getAttribute('data-k');
-      if (k === answer) { b.classList.add('right'); var m1 = b.querySelector('.mark'); if (m1) m1.textContent = '✓'; }
+      if (answers.indexOf(k) > -1) { b.classList.add('right'); var m1 = b.querySelector('.mark'); if (m1) m1.textContent = '✓'; }
     });
-    if (el.getAttribute('data-k') !== answer) {
+    if (answers.indexOf(el.getAttribute('data-k')) === -1) {
       el.classList.add('wrong');
       var m2 = el.querySelector('.mark'); if (m2) m2.textContent = '✗';
     }
-    if (ansLine) { ansLine.textContent = '正确答案：' + answer; ansLine.classList.add('show'); }
+    if (ansLine) { ansLine.textContent = '正确答案：' + answer.replace(/,/g,'、'); ansLine.classList.add('show'); }
     if (hintLine) hintLine.classList.remove('show');
   } else {
     el.classList.add('on');
