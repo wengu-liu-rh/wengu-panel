@@ -172,6 +172,7 @@ function render(payload){
   if(!lines.length){ document.getElementById('body').innerHTML = '<div class="card"><p class="para">没有收到内容。</p></div>'; return; }
   var secs = detect(lines);
   var html='';
+  secs = secs.filter(function(s){ return s.items.length > 0; });
   secs.forEach(function(sec,i){
     var c = COLORS[i%COLORS.length];
     var badge = ICONS[i] || String(i+1);
@@ -187,12 +188,8 @@ function pick(el){
   var all = document.querySelectorAll('.opt');
   Array.prototype.forEach.call(all, function(b){ b.classList.remove('on','right','wrong'); });
   el.classList.add('on');
-  setTimeout(function(){
-    el.classList.remove('on');
-    el.classList.add(el.dataset.k==='A' ? 'right' : 'wrong');
-    var mk = el.querySelector('.mark');
-    if(mk) mk.textContent = el.dataset.k==='A' ? '✓' : '✗';
-  }, 180);
+  var mk = el.querySelector('.mark');
+  if(mk) mk.textContent = '✓';
 }
 
 function downloadHtml(){
