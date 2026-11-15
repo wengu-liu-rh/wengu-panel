@@ -289,7 +289,8 @@ function renderSection(sec, idx){
 
   return '<div class="card" data-idx="' + idx + '">'
        +   '<h3 onclick="toggleCard(this)"><span class="badge ' + color + '">' + glyph + '</span>'
-       +     esc(sec.title) + '<span class="chev">▾</span></h3>'
+       +     esc(String(sec.title).replace(/[（(][^）)]*(点击|展开|查看|折叠)[^）)]*[）)]/g, ''))
+       +     '<span class="chev">▾</span></h3>'
        +   '<div class="card-body">' + body + '</div>'
        + '</div>';
 }
@@ -307,6 +308,11 @@ function render(payload){
         var t = (b.text || '').replace(/[·・\s]/g, '');
         return t !== flatTitle && t.length > 0;
       });
+      // 只剩一句"标题复读"的，整节丢掉
+      if (s.blocks.length === 1) {
+        var only = (s.blocks[0].text || '');
+        if (only.length <= 40 && /[「」【】]/.test(only)) s.blocks = [];
+      }
     }
     return s;
   }).filter(function(s){ return s.blocks.length > 0; });
