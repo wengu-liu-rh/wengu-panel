@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>温故 · 可视化面板</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+background:linear-gradient(160deg,#fff9ef,#fdf3e3 55%,#f2f8f6);color:#22303c;padding:10px;font-size:14px}
+.panel{max-width:100%}
+h1{font-size:15px;margin:0 0 6px;color:#2f5d62}
+.hint{font-size:12px;color:#8a9aa7;margin:0 0 8px;line-height:1.5}
+textarea{width:100%;height:92px;padding:8px;border:1px solid #e6e0d4;border-radius:10px;
+font-family:inherit;font-size:13px;resize:vertical;background:#fffdf8;color:#22303c}
+textarea:focus{outline:none;border-color:#f7a54a;box-shadow:0 0 0 2px rgba(247,165,74,.15)}
+.btns{display:flex;gap:6px;margin:8px 0}
+button{flex:1;padding:8px 10px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-family:inherit}
+.primary{background:#2f5d62;color:#fff}
+.primary:hover{background:#3a7278}
+.ghost{background:#fff;color:#65757f;border:1px solid #e6e0d4}
+.ghost:hover{background:#fff6e8;border-color:#f7a54a}
+.card{background:#fff;border-radius:14px;padding:12px 12px 8px;box-shadow:0 6px 20px rgba(120,140,160,.14);
+border:1px solid #f0ece3;margin-top:10px;min-height:60px}
+h3.sec{margin:10px 0 8px;font-size:14px;color:#2f5d62;border-left:4px solid #f7a54a;padding-left:8px}
+p.para{margin:7px 0;line-height:1.7;font-size:13px}
+.q{display:flex;gap:7px;margin:10px 0 6px;font-size:13.5px;font-weight:600;line-height:1.6}
+.qn{flex:none;width:20px;height:20px;border-radius:50%;background:#2f5d62;color:#fff;font-size:12px;
+display:flex;align-items:center;justify-content:center}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:9px 10px;border-radius:9px;
+border:1px solid #e6e0d4;background:#fffdf8;font-size:13px;cursor:pointer;font-family:inherit;color:#22303c}
+.opt:hover{background:#fff6e8;border-color:#f7a54a}
+.opt.on{background:#e8f6f2;border-color:#2f9e8f;box-shadow:0 0 0 2px rgba(47,158,143,.15)}
+.opt b{color:#f2861f;margin-right:4px}
+.empty{color:#9aa7b2;font-size:12.5px;line-height:1.8}
+.foot{margin-top:10px;font-size:11px;color:#b3bec7;text-align:center}
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1>可视化面板</h1>
+  <p class="hint">把温故的回答粘到下面，点「渲染」变成可点击卡片。</p>
+  <textarea id="src" placeholder="例：
+【泰勒公式】
+1. 定展开点
+2. 写多项式
+A. 皮亚诺余项
+B. 拉格朗日余项"></textarea>
+  <div class="btns">
+    <button class="primary" onclick="render()">渲染</button>
+    <button class="ghost" onclick="demo()">示例</button>
+  </div>
+  <div class="card" id="out"><p class="empty">渲染结果会显示在这里。</p></div>
+  <div class="foot">由「温故」生成 · 吉林工商学院 AI 智能体大赛</div>
+</div>
+<script>
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function pick(el){
+  var p = el.parentNode.querySelectorAll('.opt');
+  Array.prototype.forEach.call(p, function(b){ b.classList.remove('on'); });
+  el.classList.add('on');
+}
+function render(){
+  var text = document.getElementById('src').value || '';
+  var lines = text.split(/\n+/).map(function(s){ return s.trim(); }).filter(Boolean);
+  var out = document.getElementById('out');
+  if (!lines.length){ out.innerHTML = '<p class="empty">先粘点内容进来吧。</p>'; return; }
+  var html = '';
+  lines.forEach(function(line){
+    var opt = line.match(/^([A-DＡ-Ｄ])[\.、\s]\s*(.+)$/);
+    var qm  = line.match(/^(\d+)[\.、]\s*(.+)$/);
+    var sec = /^(【.+】|.+：)$/.test(line);
+    if (opt) html += '<button class="opt" onclick="pick(this)"><b>'+esc(opt[1])+'</b> '+esc(opt[2])+'</button>';
+    else if (qm) html += '<div class="q"><span class="qn">'+esc(qm[1])+'</span><span>'+esc(qm[2])+'</span></div>';
+    else if (sec) html += '<h3 class="sec">'+esc(line)+'</h3>';
+    else html += '<p class="para">'+esc(line)+'</p>';
+  });
+  out.innerHTML = html;
+}
+function demo(){
+  document.getElementById('src').value = '【泰勒公式】\n1. 定展开点（常取0）\n2. 算各阶导数\n3. 补余项\nA. 皮亚诺余项\nB. 拉格朗日余项';
+  render();
+}
+var q = new RegExp('[?&]t=([^&]*)').exec(location.search);
+if (q) { document.getElementById('src').value = decodeURIComponent(q[1].replace(/\+/g,' ')); render(); }
+</script>
+</body>
+</html>
