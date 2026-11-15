@@ -22,7 +22,6 @@ body{
   min-height:100vh;padding:26px 14px 64px;
 }
 .wrap{max-width:820px;margin:0 auto}
-/* 顶部 */
 .hero{
   background:linear-gradient(135deg,#0f766e 0%,#12877d 55%,#0e9f8e 100%);
   border-radius:22px;padding:22px 22px 20px;color:#fff;position:relative;overflow:hidden;
@@ -34,64 +33,62 @@ body{
   background:rgba(255,255,255,.18);padding:5px 10px;border-radius:999px;margin-bottom:10px}
 .hero h1{margin:0;font-size:27px;line-height:1.3;font-weight:700}
 .hero p{margin:8px 0 0;font-size:13.5px;opacity:.9;line-height:1.6}
-/* 卡片 */
 .grid{display:grid;gap:14px}
-.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(90,110,130,.10);
+.card{background:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 8px 26px rgba(90,110,130,.10);
   border:1px solid #f1ece1;animation:rise .45s ease both}
-.card h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}
+.card h3{margin:0;font-size:16px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.card h3 .chev{margin-left:auto;color:#b9c6cf;font-size:13px;transition:transform .2s}
+.card.collapsed h3 .chev{transform:rotate(-90deg)}
+.card.collapsed .card-body{display:none}
+.card-body{margin-top:12px}
 .badge{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;
   font-size:13px;font-weight:700;color:#fff;flex:none}
 .b1{background:var(--teal)} .b2{background:var(--orange)} .b3{background:var(--violet)} .b4{background:var(--rose)}
-p.para{margin:7px 0;line-height:1.85;font-size:15px;color:var(--ink)}
-ul.kv{margin:8px 0 0;padding-left:0;list-style:none}
-ul.kv li{display:flex;gap:9px;align-items:flex-start;margin:9px 0;font-size:15px;line-height:1.7}
-ul.kv li .dotc{width:20px;height:20px;border-radius:50%;flex:none;margin-top:2px;
-  display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700}
+p.para{margin:8px 0;line-height:1.85;font-size:15px;color:var(--ink)}
+/* 并列编号列表 */
+ol.num{margin:8px 0;padding-left:0;list-style:none;counter-reset:n}
+ol.num li{position:relative;padding-left:34px;margin:10px 0;line-height:1.75;font-size:15px;counter-increment:n}
+ol.num li:before{content:counter(n);position:absolute;left:0;top:1px;width:23px;height:23px;border-radius:50%;
+  background:var(--teal-l);color:var(--teal);font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center}
 /* 流程 */
-.flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
-.step{flex:1;min-width:120px;background:linear-gradient(180deg,#ffffff,#f6fbfa);
+.flow{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-top:4px}
+.step{flex:1;min-width:130px;background:linear-gradient(180deg,#ffffff,#f6fbfa);
   border:1px solid #d9ede9;border-radius:14px;padding:12px}
 .step .n{font-size:11px;color:var(--teal);font-weight:700;letter-spacing:.4px}
-.step .t{font-size:14.5px;margin-top:4px;line-height:1.5}
-.arrow{color:#b9cdc9;font-size:18px;font-weight:700}
-/* 折叠 */
-details{background:#fbfaf6;border:1px solid #efe9dc;border-radius:12px;padding:10px 12px;margin:10px 0}
-details summary{cursor:pointer;font-size:14px;color:var(--teal);font-weight:600;list-style:none}
-details summary::-webkit-details-marker{display:none}
-details summary:before{content:"▸ ";color:var(--orange)}
-details[open] summary:before{content:"▾ "}
-details p{margin:8px 0 0;font-size:14px;line-height:1.8;color:var(--ink2)}
-/* 选项 */
-.opt{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin:9px 0;padding:13px 15px;
-  border-radius:13px;border:1.5px solid #e6e0d4;background:#fffdf8;font-size:15px;cursor:pointer;
-  font-family:inherit;color:var(--ink);transition:.16s;position:relative}
+.step .t{font-size:14.5px;margin-top:4px;line-height:1.55}
+.arrow{color:#b9cdc9;font-size:18px;font-weight:700;align-self:center}
+/* 要点 */
+ul.kv{margin:8px 0 0;padding-left:0;list-style:none}
+ul.kv li{display:flex;gap:9px;align-items:flex-start;margin:9px 0;font-size:15px;line-height:1.7}
+ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;background:var(--orange)}
+/* 题目 */
+.qtitle{font-weight:600;font-size:15px;margin:14px 0 6px;line-height:1.6;display:flex;gap:8px}
+.qtitle .qn{flex:none;width:22px;height:22px;border-radius:50%;background:#2f5d62;color:#fff;font-size:12px;
+  display:flex;align-items:center;justify-content:center}
+.opt{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin:8px 0;padding:12px 14px;
+  border-radius:12px;border:1.5px solid #e6e0d4;background:#fffdf8;font-size:15px;cursor:pointer;
+  font-family:inherit;color:var(--ink);transition:.16s}
 .opt .k{width:26px;height:26px;border-radius:8px;background:#f3efe6;color:#8a7a5f;font-weight:700;font-size:13px;
   display:flex;align-items:center;justify-content:center;flex:none;transition:.16s}
-.opt:hover{border-color:var(--orange);background:#fff8ee;transform:translateX(2px)}
+.opt:hover{border-color:var(--orange);background:#fff8ee}
 .opt.on{border-color:var(--teal);background:var(--teal-l);box-shadow:0 0 0 3px rgba(15,118,110,.12)}
 .opt.on .k{background:var(--teal);color:#fff}
 .opt.right{border-color:var(--green);background:var(--green-l);box-shadow:0 0 0 3px rgba(21,128,61,.12)}
 .opt.right .k{background:var(--green);color:#fff}
 .opt.wrong{border-color:var(--red);background:var(--red-l);box-shadow:0 0 0 3px rgba(185,28,28,.10)}
 .opt.wrong .k{background:var(--red);color:#fff}
-.opt .mark{margin-left:auto;font-size:13px;font-weight:700;opacity:0;transition:.2s}
-.opt.right .mark,.opt.wrong .mark{opacity:1}
-/* 进度 */
-.prog{height:8px;border-radius:99px;background:#eef3f1;overflow:hidden;margin:12px 0 4px}
-.prog i{display:block;height:100%;width:0;border-radius:99px;
-  background:linear-gradient(90deg,#0f766e,#22b8a6,#f7a54a);transition:width .35s ease}
-.prog-txt{font-size:12px;color:#8a9aa7;text-align:right}
-/* 底部 */
-.foot{margin-top:22px;text-align:center;font-size:12px;color:#a9b4bd;line-height:1.8}
-.actions{display:flex;gap:10px;margin-top:16px}
+.opt .mark{margin-left:auto;font-size:14px;font-weight:700}
+.ansline{margin:6px 0 0;font-size:13px;color:var(--green);display:none}
+.ansline.show{display:block}
+.actions{display:flex;gap:10px;margin-top:18px}
 .actions button{flex:1;padding:12px;border-radius:13px;border:none;cursor:pointer;font-family:inherit;
   font-size:14px;font-weight:600;transition:.16s}
 .act-main{background:linear-gradient(135deg,#0f766e,#0e9f8e);color:#fff;box-shadow:0 8px 20px rgba(15,118,110,.25)}
-.act-main:hover{transform:translateY(-1px)}
 .act-ghost{background:#fff;color:var(--teal);border:1.5px solid #cfe7e3}
-.act-ghost:hover{background:#f2fbfa}
+.foot{margin-top:20px;text-align:center;font-size:12px;color:#a9b4bd}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media (max-width:520px){.hero h1{font-size:23px}.flow{flex-direction:column;align-items:stretch}.arrow{display:none}}
+@media (max-width:520px){.hero h1{font-size:23px}.flow{flex-direction:column}.arrow{display:none}}
 </style>
 </head>
 <body>
@@ -99,7 +96,7 @@ details p{margin:8px 0 0;font-size:14px;line-height:1.8;color:var(--ink2)}
   <div class="hero">
     <div class="tag">🌊 温故 · 可视化讲解</div>
     <h1 id="title">加载中…</h1>
-    <p id="sub">点一点、折一折，把知识点看明白</p>
+    <p id="sub">点标题可折叠 · 点选项看答案</p>
   </div>
   <div id="body" class="grid"></div>
   <div class="actions">
@@ -109,6 +106,11 @@ details p{margin:8px 0 0;font-size:14px;line-height:1.8;color:var(--ink2)}
   <div class="foot">由「温故」生成 · 吉林工商学院 AI 智能体大赛</div>
 </div>
 <script>
+var SB_URL = 'https://stefvsokishbdowhushy.supabase.co';
+var SB_KEY = 'sb_publishable_oeWZ9eyPqcBvO28W3wUJFQ_IdWSQBBi';
+var COLORS = ['b1','b2','b3','b4'];
+var GLYPH = ['①','②','③','④','⑤','⑥','⑦','⑧'];
+
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getParam(n){
   var m = new RegExp('[?&]'+n+'=([^&]*)').exec(location.search);
@@ -124,78 +126,205 @@ function decodePack(d){
     return JSON.parse(new TextDecoder('utf-8').decode(bytes));
   }catch(e){ return null; }
 }
-var COLORS=[['b1','var(--teal)'],['b2','var(--orange)'],['b3','var(--violet)'],['b4','var(--rose)']];
-var ICONS=['①','②','③','④','⑤','⑥'];
 
-function detect(lines){
-  var secs=[], cur=null;
-  lines.forEach(function(line){
-    var m = line.match(/^(【(.+?)】|([一二三四五六七八九十]+、.{1,20})|(.{1,14})[:：])\s*$/);
-    var head = null;
-    if (m) head = m[2] || m[3] || m[4];
-    else if (/^#\s+/.test(line)) head = line.replace(/^#\s+/,'');
-    if (head){ cur={title:head, items:[]}; secs.push(cur); }
-    else { if(!cur){ cur={title:'要点', items:[]}; secs.push(cur);} cur.items.push(line); }
-  });
-  return secs;
+/* ---------- 预处理 ---------- */
+function normalize(text){
+  var t = String(text || '')
+    .replace(/\r/g, '')
+    .replace(/#{1,6}\s*/g, '\n')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^\s*[-*•]\s+/gm, '- ');
+  // 把一行里的多个选项拆开：A. xx B. xx C. xx D. xx
+  return t.split('\n').map(function(line){
+    var s = line.trim();
+    if (!s) return '';
+    var marks = s.match(/(^|\s)[A-DＡ-Ｄ][\.、]\s*/g);
+    if (marks && marks.length >= 2) {
+      var parts = s.split(/(?=(?:^|\s)[A-DＡ-Ｄ][\.、]\s*)/).map(function(x){ return x.trim(); }).filter(Boolean);
+      if (parts.length >= 2) return parts.join('\n');
+    }
+    return s;
+  }).join('\n');
 }
 
-function renderItems(items, secIndex){
-  var html='', opts=[], stepNum=0;
-  // 选项成组
-  items.forEach(function(line){
-    var opt = line.match(/^([A-DＡ-Ｄ])[\.、\s]\s*(.+)$/);
-    var qm  = line.match(/^(\d+)[\.、]\s*(.+)$/);
-    if(opt){ opts.push({k:opt[1], t:opt[2]}); }
-    else if(qm){ stepNum++; html += '<div class="step"><div class="n">STEP '+qm[1]+'</div><div class="t">'+esc(qm[2])+'</div></div>'; }
-    else if(/^[-·•]\s*/.test(line)){ html += '<ul class="kv"><li><span class="dotc" style="background:var(--orange)">•</span><span>'+esc(line.replace(/^[-·•]\s*/,''))+'</span></li></ul>'; }
-    else { html += '<p class="para">'+esc(line)+'</p>'; }
+/* ---------- 解析 ---------- */
+function isHeading(line){
+  if (/^【.+】$/.test(line)) return line.replace(/^【|】$/g,'');
+  if (/^[一二三四五六七八九十]+、.{1,24}$/.test(line)) return line;
+  if (/^第[一二三四五六七八九十]+[章节部分].{0,20}$/.test(line)) return line;
+  if (/^.{2,14}[:：]$/.test(line)) return line.replace(/[:：]$/,'');
+  return null;
+}
+
+function parse(text){
+  var lines = normalize(text).split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  var secs = [], cur = null;
+  function push(title){
+    cur = { title: title, items: [] };
+    secs.push(cur);
+  }
+  lines.forEach(function(line){
+    var h = isHeading(line);
+    if (h) { push(h); return; }
+    if (!cur) push('要点');
+    cur.items.push(line);
   });
-  if (stepNum>1){
-    html = '<div class="flow">'+html.replace(/<\/div><div class="step">/g,'</div><span class="arrow">→</span><div class="step">')+'</div>';
+  secs.forEach(function(s){ s.blocks = buildBlocks(s.items); });
+  return secs.filter(function(s){ return s.blocks.length > 0; });
+}
+
+function buildBlocks(items){
+  var blocks = [], i = 0, autoQ = 0;
+  function lastQ(){
+    for (var k = blocks.length - 1; k >= 0; k--) if (blocks[k].type === 'question') return blocks[k];
+    return null;
   }
-  if (opts.length){
-    html += '<div style="margin-top:14px;font-size:13px;color:#8a9aa7">点一下你认为正确的选项</div>';
-    opts.forEach(function(o){
-      html += '<button class="opt" data-k="'+esc(o.k)+'" onclick="pick(this)"><span class="k">'+esc(o.k)+'</span><span>'+esc(o.t)+'</span><span class="mark">✓</span></button>';
+  while (i < items.length) {
+    var line = items[i];
+
+    // 答案行
+    var ans = line.match(/^答案[:：]\s*([A-DＡ-Ｄ])/);
+    if (ans) {
+      var q = lastQ();
+      if (q) { q.answer = ans[1].toUpperCase(); }
+      else { blocks.push({ type: 'para', text: line }); }
+      i++; continue;
+    }
+
+    // 编号条目
+    var num = line.match(/^(\d+)[\.、]\s*(.+)$/);
+    if (num) {
+      var body = num[2];
+      // 如果后面紧跟选项，则本行是题干
+      var j = i + 1, hasOpt = false;
+      while (j < items.length && /^[A-DＡ-Ｄ][\.、]\s*/.test(items[j])) { hasOpt = true; break; }
+      if (hasOpt) {
+        autoQ += 1;
+        blocks.push({ type: 'question', n: autoQ, text: body, options: [], answer: null });
+        i++; continue;
+      }
+      blocks.push({ type: 'num', text: body });
+      i++; continue;
+    }
+
+    // 选项
+    var opt = line.match(/^([A-DＡ-Ｄ])[\.、]\s*(.+)$/);
+    if (opt) {
+      var q2 = lastQ();
+      if (!q2) { autoQ += 1; q2 = { type: 'question', n: autoQ, text: '', options: [], answer: null }; blocks.push(q2); }
+      q2.options.push({ k: opt[1].toUpperCase(), t: opt[2] });
+      i++; continue;
+    }
+
+    // 要点符号
+    if (/^[-·•]\s*/.test(line)) { blocks.push({ type: 'bullet', text: line.replace(/^[-·•]\s*/,'') }); i++; continue; }
+
+    // 普通段落（若紧跟选项，视为题干）
+    var k2 = i + 1;
+    if (k2 < items.length && /^[A-DＡ-Ｄ][\.、]\s*/.test(items[k2])) {
+      autoQ += 1;
+      blocks.push({ type: 'question', n: autoQ, text: line, options: [], answer: null });
+      i++; continue;
+    }
+    blocks.push({ type: 'para', text: line });
+    i++;
+  }
+  return blocks;
+}
+
+/* ---------- 渲染 ---------- */
+function renderSection(sec, idx){
+  var color = COLORS[idx % COLORS.length];
+  var glyph = GLYPH[idx] || String(idx + 1);
+  var body = '';
+  var nums = sec.blocks.filter(function(b){ return b.type === 'num'; });
+  var flowLike = /步骤|流程|三步|步法|step/i.test(sec.title) && nums.length >= 2;
+
+  if (flowLike) {
+    body += '<div class="flow">';
+    nums.forEach(function(b, n){
+      if (n > 0) body += '<span class="arrow">→</span>';
+      body += '<div class="step"><div class="n">STEP ' + (n+1) + '</div><div class="t">' + esc(b.text) + '</div></div>';
     });
+    body += '</div>';
+  } else if (nums.length >= 2) {
+    body += '<ol class="num">' + nums.map(function(b){ return '<li>' + esc(b.text) + '</li>'; }).join('') + '</ol>';
   }
-  return html;
+
+  var usedNums = flowLike || nums.length >= 2;
+  var bulletBuf = [];
+  function flushBullets(){
+    if (!bulletBuf.length) return;
+    body += '<ul class="kv">' + bulletBuf.map(function(t){ return '<li><span class="dotc"></span><span>' + esc(t) + '</span></li>'; }).join('') + '</ul>';
+    bulletBuf = [];
+  }
+
+  sec.blocks.forEach(function(b){
+    if (b.type === 'num' && usedNums) return;
+    if (b.type === 'bullet') { bulletBuf.push(b.text); return; }
+    flushBullets();
+    if (b.type === 'num') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
+    if (b.type === 'para') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
+    if (b.type === 'question') {
+      if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span>' + esc(b.text) + '</span></div>';
+      if (b.options.length) {
+        var gid = 'q' + idx + '_' + b.n;
+        body += '<div class="optgroup" data-gid="' + gid + '" data-answer="' + (b.answer || '') + '">';
+        b.options.forEach(function(o){
+          body += '<button class="opt" data-k="' + o.k + '" onclick="pick(this)"><span class="k">' + o.k + '</span><span>' + esc(o.t) + '</span><span class="mark"></span></button>';
+        });
+        body += '</div>';
+        if (b.answer) body += '<p class="ansline">正确答案：' + b.answer + '</p>';
+      }
+    }
+  });
+  flushBullets();
+
+  return '<div class="card" data-idx="' + idx + '">'
+       +   '<h3 onclick="toggleCard(this)"><span class="badge ' + color + '">' + glyph + '</span>'
+       +     esc(sec.title) + '<span class="chev">▾</span></h3>'
+       +   '<div class="card-body">' + body + '</div>'
+       + '</div>';
 }
 
 function render(payload){
   var title = payload.title || '可视化讲解';
-  var text = payload.text || '';
   document.getElementById('title').textContent = title;
   document.title = title;
-  var t0 = String(text)
-    .replace(/\r/g, '')
-    .replace(/#{2,6}\s*/g, '\n')
-    .replace(/#\s+/g, '\n')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/^\s*[-*•]\s+/gm, '- ');
-  var lines = t0.split(/\n+/).map(function(s){return s.trim();}).filter(Boolean);
-  if(!lines.length){ document.getElementById('body').innerHTML = '<div class="card"><p class="para">没有收到内容。</p></div>'; return; }
-  var secs = detect(lines);
-  var html='';
-  secs = secs.filter(function(s){ return s.items.length > 0; });
-  secs.forEach(function(sec,i){
-    var c = COLORS[i%COLORS.length];
-    var badge = ICONS[i] || String(i+1);
-    html += '<div class="card" style="animation-delay:'+(i*0.05)+'s">'
-         +  '<h3><span class="badge '+c[0]+'">'+badge+'</span>'+esc(sec.title)+'</h3>'
-         +  renderItems(sec.items, i)
-         +  '</div>';
-  });
-  document.getElementById('body').innerHTML = html;
+  var secs = parse(payload.text || '');
+  if (!secs.length) {
+    document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
+    return;
+  }
+  document.getElementById('body').innerHTML = secs.map(renderSection).join('');
+}
+
+/* ---------- 交互 ---------- */
+function toggleCard(h){
+  var card = h.closest('.card');
+  if (card) card.classList.toggle('collapsed');
 }
 
 function pick(el){
-  var all = document.querySelectorAll('.opt');
-  Array.prototype.forEach.call(all, function(b){ b.classList.remove('on','right','wrong'); });
-  el.classList.add('on');
-  var mk = el.querySelector('.mark');
-  if(mk) mk.textContent = '✓';
+  var group = el.closest('.optgroup');
+  var answer = group ? (group.getAttribute('data-answer') || '') : '';
+  var opts = group ? group.querySelectorAll('.opt') : [el];
+  Array.prototype.forEach.call(opts, function(b){ b.classList.remove('on','right','wrong'); var m = b.querySelector('.mark'); if (m) m.textContent = ''; });
+
+  if (answer) {
+    Array.prototype.forEach.call(opts, function(b){
+      var k = b.getAttribute('data-k');
+      if (k === answer) { b.classList.add('right'); var m1 = b.querySelector('.mark'); if (m1) m1.textContent = '✓'; }
+    });
+    if (el.getAttribute('data-k') !== answer) {
+      el.classList.add('wrong');
+      var m2 = el.querySelector('.mark'); if (m2) m2.textContent = '✗';
+    }
+    var line = group && group.parentNode ? group.parentNode.querySelector('.ansline') : null;
+    if (line) line.classList.add('show');
+  } else {
+    el.classList.add('on');
+  }
 }
 
 function downloadHtml(){
@@ -208,39 +337,36 @@ function downloadHtml(){
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
 }
 
-var SB_URL = 'https://stefvsokishbdowhushy.supabase.co';
-var SB_KEY = 'sb_publishable_oeWZ9eyPqcBvO28W3wUJFQ_IdWSQBBi';
-
+/* ---------- 数据加载 ---------- */
 async function loadById(id){
   var url = SB_URL + '/rest/v1/pages?id=eq.' + encodeURIComponent(id) + '&select=id,title,body';
   var r = await fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
-  if(!r.ok) throw new Error('HTTP ' + r.status);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
   var rows = await r.json();
-  if(!rows || !rows.length) return null;
+  if (!rows || !rows.length) return null;
   return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
 }
 
 (async function(){
   var id = getParam('id');
-  if(id){
-    document.getElementById('title').textContent = '加载中…';
+  if (id) {
     try {
       var p = await loadById(id);
-      if(p){ render(p); return; }
+      if (p) { render(p); return; }
       render({ title:'页面不存在', text:'这个链接已失效，请重新生成。' });
       return;
-    } catch(e){
+    } catch (e) {
       render({ title:'加载失败', text:'读取失败：' + e.message });
       return;
     }
   }
   var d = getParam('d');
   var payload = d ? decodePack(d) : null;
-  if(!payload){
+  if (!payload) {
     var t = getParam('t');
-    if(t) payload = { title: getParam('title') || '可视化讲解', text: t };
+    if (t) payload = { title: getParam('title') || '可视化讲解', text: t };
   }
-  if(!payload) payload = { title:'可视化讲解', text:'没有收到内容。链接里需要有 d= 或 t= 参数。'};
+  if (!payload) payload = { title:'可视化讲解', text:'没有收到内容。链接里需要有 d= 或 t= 参数。' };
   render(payload);
 })();
 </script>
