@@ -202,7 +202,32 @@ function downloadHtml(){
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
 }
 
-(function(){
+var SB_URL = 'https://stefvsokishbdowhushy.supabase.co';
+var SB_KEY = 'sb_publishable_oeWZ9eyPqcBvO28W3wUJFQ_IdWSQBBi';
+
+async function loadById(id){
+  var url = SB_URL + '/rest/v1/pages?id=eq.' + encodeURIComponent(id) + '&select=id,title,body';
+  var r = await fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  var rows = await r.json();
+  if(!rows || !rows.length) return null;
+  return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
+}
+
+(async function(){
+  var id = getParam('id');
+  if(id){
+    document.getElementById('title').textContent = '加载中…';
+    try {
+      var p = await loadById(id);
+      if(p){ render(p); return; }
+      render({ title:'页面不存在', text:'这个链接已失效，请重新生成。' });
+      return;
+    } catch(e){
+      render({ title:'加载失败', text:'读取失败：' + e.message });
+      return;
+    }
+  }
   var d = getParam('d');
   var payload = d ? decodePack(d) : null;
   if(!payload){
