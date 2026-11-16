@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>温故 · 可视化讲解</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous" onload="window.__katexReady&&window.__katexReady()"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous" onload="window.__katexReady&&window.__katexReady()"></script>
 <style>
 :root{
   --ink:#1f2d3a; --ink2:#5b6b7a; --line:#e8e2d6;
@@ -591,7 +591,9 @@ function renderMath(root){
         return;
       } catch (e) { /* 落到降级 */ }
     }
-    if (tries++ < 80) { setTimeout(attempt, 100); return; }
+    if (tries++ < 150) { setTimeout(attempt, 100); return; }
+    if (root.getAttribute('data-fallback') === '1') return;
+    root.setAttribute('data-fallback', '1');
     // 降级：把 LaTeX 转成可读纯文本
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     var nodes = [];
@@ -606,6 +608,24 @@ function renderMath(root){
 }
 
 /* ---------- 数据加载 ---------- */
+// KaTeX 加载完成后，如果页面还没渲染过公式（说明刚才走了降级或还没跑），再补一次
+window.__katexReady = function(){
+  var body = document.getElementById('body');
+  if (!body || !window.renderMathInElement) return;
+  if (body.querySelector('.katex')) return;
+  try {
+    window.renderMathInElement(body, {
+      delimiters: [
+        { left: '\\[', right: '\\]', display: true },
+        { left: '\\(', right: '\\)', display: false },
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false,
+      ignoredTags: ['script','noscript','style','textarea','pre','code']
+    });
+  } catch (e) { /* ignore */ }
+};
 async function loadById(id){
   var url = SB_URL + '/rest/v1/pages?id=eq.' + encodeURIComponent(id) + '&select=id,title,body';
   var r = await fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
