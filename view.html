@@ -363,7 +363,7 @@ function renderSection(sec, idx){
         body += '</div>';
         body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
         if (b.exp) body += '<p class="expline">解析：' + esc(b.exp) + '</p>';
-        if (!b.answer) body += '';
+        if (!b.answer) body += '<p class="hintline">本题未附答案，请回到对话让温故批改。</p>';
       }
       body += '</div>';
     }
@@ -457,6 +457,7 @@ function pick(el){
     el.classList.add('on');
     var mk = el.querySelector('.mark');
     if (mk) mk.textContent = '✓';
+    if (hintLine) hintLine.classList.add('show');
   }
 }
 
