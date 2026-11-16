@@ -145,6 +145,8 @@ function normalize(text){
     .replace(/＋/g, '+')
     .replace(/#{1,6}\s*/g, '\n')
     .replace(/\*\*(.+?)\*\*/g, '$1')
+    // 选项前带列表符号（- A. xxx）时先去掉符号，否则会被当成要点
+    .replace(/^\s*[-*•]\s+(?=[A-DＡ-Ｄ][\.、])/gm, '')
     .replace(/^\s*[-*•]\s+/gm, '- ')
     // 箭头后面通常是答案，单独成行
     .replace(/\s*[→➜➤]\s*/g, '\n')
