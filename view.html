@@ -178,7 +178,8 @@ function extractAnswers(raw){
   var cut = -1;
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i].replace(/#{1,6}\s*/g, '').trim();
-    if (/^(答案与解析|参考答案|答案解析|答案区|答案)$/.test(l) || /^答案[与和]解析/.test(l)) { cut = i; break; }
+    // 标题只要以「答案/解析」开头就认，后面带括号说明无所谓
+    if (/^(?:答案[与和]?(?:解析)?|答案解析|参考答案|解析)\s*[（(【\[]?/.test(l) && l.length <= 20) { cut = i; break; }
   }
   var map = {}, main = text;
   var block = '';
@@ -190,7 +191,10 @@ function extractAnswers(raw){
     var tail = [];
     var keep = [];
     lines.forEach(function(l){
-      if (/^\s*(?:正确)?答案\s*[:：]/.test(l) && /(\d+)\s*[\.、:：\-]?\s*[A-DＡ-Ｄ]/.test(l) && /\d/.test(l)) tail.push(l);
+      // 「答案：1.B 2.B」以及「1. 答案：B」两种都捞
+      var isSummary = /^\s*(?:正确)?答案\s*[:：]/.test(l) && /(\d+)\s*[\.、:：\-]?\s*[A-DＡ-Ｄ]/.test(l);
+      var isNumbered = /^\s*\d+\s*[\.、]?\s*(?:正确)?答案\s*[:：]/.test(l);
+      if (isSummary || isNumbered) tail.push(l);
       else keep.push(l);
     });
     if (tail.length) { block = tail.join('\n'); main = keep.join('\n'); }
