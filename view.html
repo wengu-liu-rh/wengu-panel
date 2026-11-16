@@ -500,8 +500,28 @@ function latexToText(s){
   return t;
 }
 
+/* ---------- 公式里的加号修复 ---------- */
+// 平台会把半角 + 当空格吞掉，公式里就少了加号。
+// 只在数学定界符内部，把「数字/} /变量 后面直接跟空格再接变量或命令」的地方补回 +
+function fixMathSpaces(text){
+  var s = String(text || '');
+  var re = /(\$[^$]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$)/g;
+  return s.replace(re, function(seg){
+    return seg.replace(/([\dx\}\)])\s+(?=[\dx\\])/g, '$1 + ');
+  });
+}
+
 function renderMath(root){
   if (!root) return;
+  // 先补加号
+  try {
+    var walker0 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var list0 = [];
+    while (walker0.nextNode()) list0.push(walker0.currentNode);
+    list0.forEach(function(n){
+      if (n.nodeValue && /\$|\\\(|\\\[/.test(n.nodeValue)) n.nodeValue = fixMathSpaces(n.nodeValue);
+    });
+  } catch (e) { /* ignore */ }
   var tries = 0;
   (function attempt(){
     if (window.renderMathInElement) {
