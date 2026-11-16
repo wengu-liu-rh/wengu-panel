@@ -86,6 +86,7 @@ ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;b
 .ansline.show{display:block}
 .hintline{margin:6px 0 0;font-size:12.5px;color:#9aa7b2;display:none}
 .hintline.show{display:block}
+.note{margin:0 0 12px;padding:9px 12px;border-radius:10px;background:#fff7e6;color:#8a6d3b;font-size:12.5px;line-height:1.6;border:1px solid #f5e0b7}
 .expline{margin:6px 0 0;font-size:12.5px;line-height:1.7;color:#7b8794;background:#fafbfc;border-left:3px solid #dfe7ea;padding:6px 8px;border-radius:6px;display:none}
 .expline.show{display:block}
 .actions{display:flex;gap:10px;margin-top:18px}
@@ -203,6 +204,14 @@ function extractAnswers(raw){
     for (var j = Math.floor(lines.length * 0.5); j < lines.length; j++) {
       if (/^(?:解析|解答|分析|详解)\s*[:：]/.test(lines[j].trim())) { cut = j; break; }
     }
+  }
+  // 校验：切出来的那一块必须真的像答案（有题号+选项，或有解析行），否则不切，避免吞掉正文
+  if (cut > -1) {
+    var peek = lines.slice(cut + 1).join('\n');
+    var looksLikeAnswer = /(?:^|\n)\s*\d+\s*[\.、]?\s*(?:正确)?答案\s*[:：]/.test(peek)
+      || /(?:^|\n)\s*\d+\s*[\.、]?[（(]?\s*[A-DＡ-Ｄ]\s*[)）]?(?:\s|$|。)/.test(peek)
+      || /(?:^|\n)\s*(?:解析|解答|分析)\s*[:：]/.test(peek);
+    if (!looksLikeAnswer) cut = -1;
   }
   var map = {}, main = text, list = [];
   var block = '';
@@ -502,7 +511,13 @@ function render(payload){
     document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
     return;
   }
-  document.getElementById('body').innerHTML = secs.map(renderSection).join('');
+  // 答案不全时给一句说明，避免用户以为页面坏了
+  var missing = 0;
+  allQ.forEach(function(b){ if (!b.answer) missing++; });
+  var noteHtml = (missing > 0 && allQ.length > 0)
+    ? '<p class="note">本次只提供了 ' + (allQ.length - missing) + ' / ' + allQ.length + ' 道题的答案，其余题目请回到对话让温故补全。</p>'
+    : '';
+  document.getElementById('body').innerHTML = noteHtml + secs.map(renderSection).join('');
   // 公式渲染（KaTeX 可用就用它，否则降级为纯文本）
   setTimeout(function(){ renderMath(document.getElementById('body')); }, 60);
 }
@@ -545,12 +560,23 @@ function pick(el){
   }
 }
 
-function downloadHtml(){
+async function downloadHtml(){
   // 打个"已冻结"标记：保存下来的文件打开时不再请求数据库
   var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
   if (html.indexOf('name="wg-frozen"') === -1) {
     html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="wg-frozen" content="1">');
   }
+  // 把 KaTeX 样式内联进文件，断网时排版也不会塌（字体仍需联网，官方也要求带 fonts 目录）
+  try {
+    var cssUrl = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+    var fontBase = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/fonts/';
+    var resp = await fetch(cssUrl);
+    if (resp.ok) {
+      var css = await resp.text();
+      css = css.replace(/url\((['"]?)fonts\//g, 'url($1' + fontBase);
+      html = html.replace(/<link[^>]*katex[^>]*\.css[^>]*>/i, '<style>' + css + '</style>');
+    }
+  } catch (e) { /* 内联失败就保持原来的 CDN 引用 */ }
   var blob = new Blob([html], {type:'text/html;charset=utf-8'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -725,21 +751,28 @@ window.__katexReady = function(){
 };
 async function loadById(id){
   // 走 RPC：只允许按 id 取单行，不能遍历整表
-  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 12000);
+  var signal;
+  var timer = null;
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    signal = AbortSignal.timeout(12000);
+  } else if (typeof AbortController !== 'undefined') {
+    var ctrl = new AbortController();
+    timer = setTimeout(function(){ ctrl.abort(); }, 12000);
+    signal = ctrl.signal;
+  }
   try {
     var r = await fetch(SB_URL + '/rest/v1/rpc/get_page', {
       method: 'POST',
       headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ p_id: id }),
-      signal: ctrl ? ctrl.signal : undefined
+      signal: signal
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var rows = await r.json();
     if (!rows || !rows.length) return null;
     return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -754,7 +787,8 @@ async function loadById(id){
       render({ title:'页面不存在', text:'这个链接已失效，请重新生成。' });
       return;
     } catch (e) {
-      render({ title:'加载失败', text:'读取失败：' + e.message });
+      var msg = (e && e.name === 'AbortError') ? '加载超时，请刷新页面重试。' : ('读取失败：' + (e && e.message ? e.message : e));
+      render({ title:'加载失败', text: msg });
       return;
     }
   }
