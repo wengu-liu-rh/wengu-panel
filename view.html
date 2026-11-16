@@ -184,7 +184,7 @@ function extractAnswers(raw){
     // 标题只要以「答案/解析」开头就认，后面带括号说明无所谓
     if (/^(?:答案[与和]?(?:解析)?|答案解析|参考答案|解析)\s*[（(【\[]?/.test(l) && l.length <= 20) { cut = i; break; }
   }
-  var map = {}, main = text;
+  var map = {}, main = text, list = [];
   var block = '';
   if (cut > -1) {
     main = lines.slice(0, cut).join('\n');
@@ -202,7 +202,7 @@ function extractAnswers(raw){
     });
     if (tail.length) { block = tail.join('\n'); main = keep.join('\n'); }
   }
-  if (!block) return { main: main, map: map };
+  if (!block) return { main: main, map: map, list: list };
 
   block.split('\n').forEach(function(line){
     var s = line
@@ -217,7 +217,11 @@ function extractAnswers(raw){
     if (m1) {
       var n = parseInt(m1[1], 10);
       var letters = (m1[2].toUpperCase().match(/[A-D]/g) || []).join(',');
-      if (letters) map[n] = { ans: letters, exp: (m1[3] || '').trim() };
+      if (letters) {
+        var expTxt = (m1[3] || '').trim();
+        map[n] = { ans: letters, exp: expTxt };
+        list.push({ ans: letters, exp: expTxt });
+      }
       return;
     }
     // 形式二：同一行里多个 1.B 2.C
@@ -226,18 +230,21 @@ function extractAnswers(raw){
     while ((mm = re.exec(s)) !== null) {
       var nn = parseInt(mm[1], 10);
       var ls = [mm[2], mm[3]].filter(Boolean).map(function(x){ return x.toUpperCase(); }).join(',');
-      if (nn >= 1 && nn <= 100 && ls) { map[nn] = { ans: ls, exp: (map[nn] && map[nn].exp) || '' }; hit = true; }
+      if (nn >= 1 && nn <= 100 && ls) {
+        map[nn] = { ans: ls, exp: (map[nn] && map[nn].exp) || '' };
+        list.push({ ans: ls, exp: '' });
+        hit = true;
+      }
     }
-    if (!hit && s.length > 2) {
-      // 纯解析行：附加到上一个答案
-      var keys = Object.keys(map).map(Number).sort(function(a,b){ return a-b; });
-      if (keys.length) {
-        var last = keys[keys.length - 1];
-        map[last].exp = ((map[last].exp || '') + ' ' + s).trim();
+    if (!hit) {
+      // 只有明确以「解析/解答/分析/说明」开头的续行才并入上一条答案，
+      // 其它（小标题、计算题解答、下一节内容）一律忽略，避免串到选择题解析里
+      if (/^(解析|解答|分析|说明)\s*[:：]/.test(s) && list.length) {
+        list[list.length - 1].exp = ((list[list.length - 1].exp || '') + ' ' + s).trim();
       }
     }
   });
-  return { main: main, map: map };
+  return { main: main, map: map, list: list };
 }
 
 function isHeading(line){
@@ -376,7 +383,7 @@ function renderSection(sec, idx){
         });
         body += '</div>';
         body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
-        if (b.exp) body += '<p class="expline">解析：' + esc(b.exp) + '</p>';
+        if (b.exp) body += '<p class="expline">' + (/^(解析|解答|分析|说明)\s*[:：]/.test(b.exp) ? esc(b.exp) : '解析：' + esc(b.exp)) + '</p>';
         if (!b.answer) body += '<p class="hintline">本题未附答案，请回到对话让温故批改。</p>';
       }
       body += '</div>';
@@ -418,16 +425,21 @@ function render(payload){
         if (only.length <= 40 && /[「」【】]/.test(only)) s.blocks = [];
       }
     }
-    // 把文末解析里的答案按题号贴回每道题
-    s.blocks.forEach(function(b){
-      if (b.type === 'question') {
-        var hit = extracted.map[b.n];
-        if (hit && !b.answer) { b.answer = hit.ans; b.exp = hit.exp || ''; }
-        else if (hit && hit.exp && !b.exp) { b.exp = hit.exp; }
-      }
-    });
     return s;
   }).filter(function(s){ return s.blocks.length > 0; });
+
+  // 按「题目出现顺序」依次贴答案：跨小节题号会重复（1. 2. 又 1.），按题号会错位
+  var cursor = 0;
+  secs.forEach(function(s){
+    s.blocks.forEach(function(b){
+      if (b.type !== 'question' || b.answer) return;
+      if (cursor < extracted.list.length) {
+        var hit = extracted.list[cursor++];
+        b.answer = hit.ans;
+        if (hit.exp) b.exp = hit.exp;
+      }
+    });
+  });
   if (!secs.length) {
     document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
     return;
