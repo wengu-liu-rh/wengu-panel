@@ -196,31 +196,39 @@ function extractAnswers(raw){
     var isShortTitle = l.length <= 24 && headCore.length <= 12;
     var isExpLine = /^(解析|解答|分析|说明)\s*[:：]\s*\S/.test(l);
     if (isShortTitle && !isExpLine && HEAD_RE.test(headCore)) { candidates.push(i); continue; }
+    // 「点击选项即可查看答案：」这类引导句也当作答案区起点
+    if (l.length <= 22 && /(答案|解析)/.test(l) && /(查看|如下|清单|见下|揭晓)/.test(l)) { candidates.push(i); continue; }
     // 带冒号的是答案内容，不是小节标题
     if (/[：:]/.test(l)) continue;
     // 「答案：1.B 2.C」这类是答案行，不是小节标题，先排除
     if (/^答案\s*[:：]\s*\d/.test(l)) continue;
     if (/\d\s*[\.、]\s*[A-DＡ-Ｄ]/.test(l)) continue;
   }
-  // 取「后面还有内容」的最后一个答案标题，避免正文中间出现该标题时把后半段全部吞掉
-  for (var c = candidates.length - 1; c >= 0; c--) {
-    var after = lines.slice(candidates[c] + 1).filter(function(x){ return x.trim(); }).length;
-    if (after >= 1) { cut = candidates[c]; break; }
+  // 按候选顺序逐个试：切出来的块像答案就用它（避免多个「答案：」行把前面的答案切走）
+  function mergeAnsLines(s0){
+    return s0.replace(/\n(\d+[\.、][^\n]{0,16})\n((?:参考)?答案\s*[:：])/g, '\n$1$2');
   }
+  function looksLikeAnswerText(t0){
+    return /(?:^|\n)\s*\d+\s*[\.、]?[^\n]{0,16}?答案\s*[:：]/.test(t0)
+      || /(?:^|\n)\s*\d+\s*[\.、]\s*[（(]?[A-DＡ-Ｄ]/.test(t0)
+      || /(?:^|\n)\s*(?:解析|解答|分析)\s*[:：]/.test(t0)
+      || /(?:^|\n)\s*[A-DＡ-Ｄ]\s*[（(。]?\s*[^\n]{0,40}$/.test(t0);
+  }
+  for (var c = 0; c < candidates.length; c++) {
+    var afterN = lines.slice(candidates[c] + 1).filter(function(x){ return x.trim(); }).length;
+    if (afterN < 1) continue;
+    var blk = mergeAnsLines(lines.slice(candidates[c] + 1).join('\n'));
+    if (looksLikeAnswerText(blk)) { cut = candidates[c]; break; }
+  }
+  if (cut < 0 && candidates.length) cut = candidates[candidates.length - 1];
   // 兜底：没有标题、且正文里完全没有「答案：」时，才按末尾「解析：」切开
   if (cut < 0 && !/答案\s*[:：]/.test(text)) {
     for (var j = Math.floor(lines.length * 0.5); j < lines.length; j++) {
       if (/^(?:解析|解答|分析|详解)\s*[:：]/.test(lines[j].trim())) { cut = j; break; }
     }
   }
-  // 校验：切出来的那一块必须真的像答案（有题号+选项，或有解析行），否则不切，避免吞掉正文
-  if (cut > -1) {
-    var peek = lines.slice(cut + 1).join('\n');
-    var looksLikeAnswer = /(?:^|\n)\s*\d+\s*[\.、]?\s*(?:正确)?答案\s*[:：]/.test(peek)
-      || /(?:^|\n)\s*\d+\s*[\.、]?[（(]?\s*[A-DＡ-Ｄ]\s*[)）]?(?:\s|$|。)/.test(peek)
-      || /(?:^|\n)\s*(?:解析|解答|分析)\s*[:：]/.test(peek);
-    if (!looksLikeAnswer) cut = -1;
-  }
+  // 校验：切出来的那一块必须真的像答案，否则不切，避免吞掉正文
+  if (cut > -1 && !looksLikeAnswerText(mergeAnsLines(lines.slice(cut + 1).join('\n')))) cut = -1;
   var map = {}, main = text, list = [], texts = [];
   var block = '';
   if (cut > -1) {
@@ -240,9 +248,11 @@ function extractAnswers(raw){
     if (tail.length) { block = tail.join('\n'); main = keep.join('\n'); }
   }
   if (!block) return { main: main, map: map, list: list, texts: texts };
+  // 把「N. 小标题」紧跟「答案：」的写法合并成「N. 小标题答案：」
+  block = block.replace(/\n(\d+[\.、][^\n]{0,16})\n((?:参考)?答案\s*[:：])/g, '\n$1$2');
 
   // 同一组内同题号重复出现时，以最后一次为准（模型常在末尾再汇总一遍正确答案）
-  var subkey = '', slot = {};
+  var subkey = '', slot = {}, pendingText = -1;
   function put(n, letters, expTxt){
     var k = subkey + '#' + n;
     var item = { n: n, ans: letters, exp: expTxt || '' };
@@ -264,11 +274,31 @@ function extractAnswers(raw){
       .replace(/^[\s>*\-•]+/, '')
       .trim();
     if (!s) return;
+    // 上一条文字答案的续行（简答题的多行要点）
+    if (pendingText >= 0 && !/^\d+\s*[\.、]/.test(s) && !/^[A-DＡ-Ｄ][\.、]/.test(s) && !/[：:]$/.test(s)) {
+      texts[pendingText].text = (texts[pendingText].text + ' ' + s).trim();
+      return;
+    }
     // 小标题：短的、不含冒号、不以数字开头 → 切换到新的题号分组
     if (s.length <= 14 && !/[：:]/.test(s) && !/^\d/.test(s) && !/^[A-DＡ-Ｄ][\.、]/.test(s)) {
       subkey = s;
       return;
     }
+    // 带标题的答案行：1. 选择题1答案：C（…）；3. 简答题答案：
+    var mt2 = s.match(/^(\d+)\s*[\.、]?\s*([^\n]{0,16}?)答案\s*[:：]\s*([\s\S]*)$/);
+    if (mt2) {
+      var n2 = parseInt(mt2[1], 10);
+      var rest = (mt2[3] || '').trim();
+      var lm = rest.match(/^([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[（(。\.]?\s*([\s\S]*)$/);
+      if (lm) {
+        put(n2, (lm[1].toUpperCase().match(/[A-D]/g) || []).join(','), (lm[2] || '').trim());
+      } else {
+        texts.push({ n: n2, text: rest, exp: '' });
+        pendingText = texts.length - 1;
+      }
+      return;
+    }
+
     // 形式一：1. 答案：B / 1. 正确答案：B。解析……
     var m1 = s.match(/^(\d+)\s*[\.、]?\s*[（(]?\s*(?:(?:正确)?答案\s*[:：]?\s*)?([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[)）]?\s*[。\.、:：]?\s*([\s\S]*)$/);
     if (m1) {
