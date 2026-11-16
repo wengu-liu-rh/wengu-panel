@@ -467,6 +467,9 @@ function latexToText(s){
   var SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','n':'ⁿ','+':'⁺','-':'⁻'};
   var SUB = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','n':'ₙ','x':'ₓ'};
   var t = String(s)
+    .replace(/\\\(|\\\)/g, '')
+    .replace(/\\\[|\\\]/g, '')
+    .replace(/\$\$/g, '')
     .replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
     .replace(/\\sqrt\s*\{([^{}]*)\}/g, '√($1)')
     .replace(/\\mathrm\s*\{([^{}]*)\}/g, '$1')
@@ -490,30 +493,34 @@ function latexToText(s){
 
 function renderMath(root){
   if (!root) return;
-  if (window.renderMathInElement) {
-    try {
-      window.renderMathInElement(root, {
-        delimiters: [
-          { left: '\\[', right: '\\]', display: true },
-          { left: '\\(', right: '\\)', display: false },
-          { left: '$$', right: '$$', display: true }
-        ],
-        throwOnError: false,
-        ignoredTags: ['script','noscript','style','textarea','pre','code']
-      });
-      return;
-    } catch (e) { /* 落到纯文本降级 */ }
-  }
-  // 降级：把 LaTeX 转成可读纯文本
-  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-  var nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(function(n){
-    var v = n.nodeValue;
-    if (!v) return;
-    if (v.indexOf('\\') === -1 && v.indexOf('^') === -1 && v.indexOf('_') === -1) return;
-    n.nodeValue = latexToText(v);
-  });
+  var tries = 0;
+  (function attempt(){
+    if (window.renderMathInElement) {
+      try {
+        window.renderMathInElement(root, {
+          delimiters: [
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '$$', right: '$$', display: true }
+          ],
+          throwOnError: false,
+          ignoredTags: ['script','noscript','style','textarea','pre','code']
+        });
+        return;
+      } catch (e) { /* 落到降级 */ }
+    }
+    if (tries++ < 40) { setTimeout(attempt, 100); return; }
+    // 降级：把 LaTeX 转成可读纯文本
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function(n){
+      var v = n.nodeValue;
+      if (!v) return;
+      if (v.indexOf('\\') === -1 && v.indexOf('^') === -1 && v.indexOf('_') === -1) return;
+      n.nodeValue = latexToText(v);
+    });
+  })();
 }
 
 /* ---------- 数据加载 ---------- */
