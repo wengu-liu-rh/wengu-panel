@@ -207,8 +207,8 @@ function extractAnswers(raw){
     var after = lines.slice(candidates[c] + 1).filter(function(x){ return x.trim(); }).length;
     if (after >= 1) { cut = candidates[c]; break; }
   }
-  // 兜底：没有标题、且正文里还没有任何「答案：X」时，才按末尾「解析：」切开
-  if (cut < 0 && !/(?:^|\n)\s*(?:\d+\s*[\.、]?\s*)?(?:正确)?答案\s*[:：]\s*[A-DＡ-Ｄ]/m.test(text)) {
+  // 兜底：没有标题、且正文里完全没有「答案：」时，才按末尾「解析：」切开
+  if (cut < 0 && !/答案\s*[:：]/.test(text)) {
     for (var j = Math.floor(lines.length * 0.5); j < lines.length; j++) {
       if (/^(?:解析|解答|分析|详解)\s*[:：]/.test(lines[j].trim())) { cut = j; break; }
     }
