@@ -148,8 +148,8 @@ function normalize(text){
     // 选项前带列表符号（- A. xxx）时先去掉符号，否则会被当成要点
     .replace(/^\s*[-*•]\s+(?=[A-DＡ-Ｄ][\.、])/gm, '')
     .replace(/^\s*[-*•]\s+/gm, '- ')
-    // 箭头后面通常是答案，单独成行
-    .replace(/\s*[→➜➤]\s*/g, '\n')
+    // 只有「→ 答案/正确答案」这种箭头才拆行（lim(x→0) 里的箭头不能拆）
+    .replace(/\s*[→➜➤]\s*(?=(?:正确)?答案)/g, '\n')
     // 「正确答案：X」「答案：X」也单独成行
     .replace(/((?:正确)?答案\s*[:：])/g, '\n$1');
   // 把一行里的多个选项拆开：A. xx B. xx C. xx D. xx
@@ -178,6 +178,9 @@ function extractAnswers(raw){
   var cut = -1;
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i].replace(/#{1,6}\s*/g, '').trim();
+    // 「答案：1.B 2.C」这类是答案行，不是小节标题，先排除
+    if (/^答案\s*[:：]\s*\d/.test(l)) continue;
+    if (/\d\s*[\.、]\s*[A-DＡ-Ｄ]/.test(l)) continue;
     // 标题只要以「答案/解析」开头就认，后面带括号说明无所谓
     if (/^(?:答案[与和]?(?:解析)?|答案解析|参考答案|解析)\s*[（(【\[]?/.test(l) && l.length <= 20) { cut = i; break; }
   }
