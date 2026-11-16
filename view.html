@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>温故 · 可视化讲解</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
 <style>
 :root{
   --ink:#1f2d3a; --ink2:#5b6b7a; --line:#e8e2d6;
@@ -407,6 +410,8 @@ function render(payload){
     return;
   }
   document.getElementById('body').innerHTML = secs.map(renderSection).join('');
+  // 公式渲染（KaTeX 可用就用它，否则降级为纯文本）
+  setTimeout(function(){ renderMath(document.getElementById('body')); }, 60);
 }
 
 /* ---------- 交互 ---------- */
@@ -455,6 +460,60 @@ function downloadHtml(){
   a.download = (document.title || '温故讲解') + '.html';
   a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+}
+
+/* ---------- 数学公式渲染 ---------- */
+function latexToText(s){
+  var SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','n':'ⁿ','+':'⁺','-':'⁻'};
+  var SUB = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','n':'ₙ','x':'ₓ'};
+  var t = String(s)
+    .replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
+    .replace(/\\sqrt\s*\{([^{}]*)\}/g, '√($1)')
+    .replace(/\\mathrm\s*\{([^{}]*)\}/g, '$1')
+    .replace(/\\text\s*\{([^{}]*)\}/g, '$1')
+    .replace(/\\left|\\right|\\displaystyle/g, '')
+    .replace(/\\cdot/g, '·').replace(/\\times/g, '×').replace(/\\div/g, '÷')
+    .replace(/\\leq/g, '≤').replace(/\\geq/g, '≥').replace(/\\neq/g, '≠').replace(/\\approx/g, '≈')
+    .replace(/\\to/g, '→').replace(/\\infty/g, '∞').replace(/\\cdots|\\ldots|\\dots/g, '…')
+    .replace(/\\pi/g, 'π').replace(/\\xi/g, 'ξ').replace(/\\theta/g, 'θ')
+    .replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\delta/g, 'δ')
+    .replace(/\\lambda/g, 'λ').replace(/\\mu/g, 'μ').replace(/\\sigma/g, 'σ').replace(/\\omega/g, 'ω')
+    .replace(/\\sum/g, '∑').replace(/\\int/g, '∫').replace(/\\partial/g, '∂')
+    .replace(/\\lim/g, 'lim').replace(/\\ln/g, 'ln').replace(/\\log/g, 'log')
+    .replace(/\\sin/g, 'sin').replace(/\\cos/g, 'cos').replace(/\\tan/g, 'tan')
+    .replace(/\\[,;:! ]/g, ' ')
+    .replace(/\^\{?([0-9n+\-])\}?/g, function(_, c){ return SUP[c] || '^' + c; })
+    .replace(/_\{?([0-9nx])\}?/g, function(_, c){ return SUB[c] || '_' + c; })
+    .replace(/\\[a-zA-Z]+/g, function(m){ return m.slice(1); });
+  return t;
+}
+
+function renderMath(root){
+  if (!root) return;
+  if (window.renderMathInElement) {
+    try {
+      window.renderMathInElement(root, {
+        delimiters: [
+          { left: '\\[', right: '\\]', display: true },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '$$', right: '$$', display: true }
+        ],
+        throwOnError: false,
+        ignoredTags: ['script','noscript','style','textarea','pre','code']
+      });
+      return;
+    } catch (e) { /* 落到纯文本降级 */ }
+  }
+  // 降级：把 LaTeX 转成可读纯文本
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  var nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(function(n){
+    var v = n.nodeValue;
+    if (!v) return;
+    if (v.indexOf('\\') === -1 && v.indexOf('^') === -1 && v.indexOf('_') === -1) return;
+    n.nodeValue = latexToText(v);
+  });
 }
 
 /* ---------- 数据加载 ---------- */
