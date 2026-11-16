@@ -86,8 +86,6 @@ ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;b
 .ansline.show{display:block}
 .hintline{margin:6px 0 0;font-size:12.5px;color:#9aa7b2;display:none}
 .hintline.show{display:block}
-.hintline .chatbtn{color:var(--teal);text-decoration:none;font-weight:600;border-bottom:1px dashed #9fd3cc}
-.hintline .chatbtn:hover{border-bottom-style:solid}
 .expline{margin:6px 0 0;font-size:12.5px;line-height:1.7;color:#7b8794;background:#fafbfc;border-left:3px solid #dfe7ea;padding:6px 8px;border-radius:6px;display:none}
 .expline.show{display:block}
 .actions{display:flex;gap:10px;margin-top:18px}
@@ -365,7 +363,7 @@ function renderSection(sec, idx){
         body += '</div>';
         body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
         if (b.exp) body += '<p class="expline">解析：' + esc(b.exp) + '</p>';
-        if (!b.answer) body += '<p class="hintline">本题页内未附答案，<a class="chatbtn" href="https://robot.chaoxing.com/coze/web?unitId=355919&robotId=b60fa33877034107b694c5cbcf0b832f" target="_blank" rel="noopener">去对话让温故批改 →</a></p>';
+        if (!b.answer) body += '';
       }
       body += '</div>';
     }
@@ -459,7 +457,6 @@ function pick(el){
     el.classList.add('on');
     var mk = el.querySelector('.mark');
     if (mk) mk.textContent = '✓';
-    if (hintLine) hintLine.classList.add('show');
   }
 }
 
