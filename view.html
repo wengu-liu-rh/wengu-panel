@@ -958,7 +958,7 @@ async function loadById(id){
     try {
       var p = await loadById(id);
       if (p) { render(p); return; }
-      render({ title:'页面不存在', text:'这个链接已失效，请重新生成。' });
+      render({ title:'页面不存在', text:'没找到这个页面。可能是链接被写错了（模型有时会自己编链接），请在对话里让温故重新生成一次。' });
       return;
     } catch (e) {
       var msg = (e && e.name === 'AbortError') ? '加载超时，请刷新页面重试。' : ('读取失败：' + (e && e.message ? e.message : e));
