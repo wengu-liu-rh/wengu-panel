@@ -180,17 +180,23 @@ function extractAnswers(raw){
   var cut = -1;
   // 答案区标题的严格形态：答案 / 答案解析 / 答案与解析 / 参考答案 / 解析 等
   var HEAD_RE = /^(?:参考|正确)?答\s*案(?:\s*[与和及、]?\s*(?:解析|详解|说明|解答|提示|汇总|速查))?$|^(?:解析|详解)(?:\s*[与和及、]?\s*答案)?$/;
+  var candidates = [];
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i].replace(/#{1,6}\s*/g, '').replace(/\*\*/g, '').trim();
     if (!l) continue;
     // 先把「答案与解析：」这类标题的尾部冒号去掉再判断
     var headCore = l.replace(/[（(【\[].*$/, '').replace(/[）)】\]]+$/, '').replace(/[：:、，,。.]+$/, '').trim();
-    if (headCore.length <= 12 && HEAD_RE.test(headCore)) { cut = i; break; }
+    if (headCore.length <= 12 && HEAD_RE.test(headCore)) { candidates.push(i); continue; }
     // 带冒号的是答案内容，不是小节标题
     if (/[：:]/.test(l)) continue;
     // 「答案：1.B 2.C」这类是答案行，不是小节标题，先排除
     if (/^答案\s*[:：]\s*\d/.test(l)) continue;
     if (/\d\s*[\.、]\s*[A-DＡ-Ｄ]/.test(l)) continue;
+  }
+  // 取「后面还有内容」的最后一个答案标题，避免正文中间出现该标题时把后半段全部吞掉
+  for (var c = candidates.length - 1; c >= 0; c--) {
+    var after = lines.slice(candidates[c] + 1).filter(function(x){ return x.trim(); }).length;
+    if (after >= 1) { cut = candidates[c]; break; }
   }
   // 兜底：没有标题，但末尾出现「解析：」开头的行，也从那里切开
   if (cut < 0) {
@@ -284,7 +290,7 @@ function isHeading(line){
   if (/^【.+】$/.test(line)) return line.replace(/^【|】$/g,'');
   if (/^[一二三四五六七八九十]+、.{1,24}$/.test(line)) return line;
   if (/^第[一二三四五六七八九十]+[章节部分].{0,20}$/.test(line)) return line;
-  if (/^.{2,14}[:：]$/.test(line)) return line.replace(/[:：]$/,'');
+  // 不再把「注意：」这类普通短句升格成卡片标题（否则该行会从正文消失）
   return null;
 }
 
@@ -540,7 +546,11 @@ function pick(el){
 }
 
 function downloadHtml(){
+  // 打个"已冻结"标记：保存下来的文件打开时不再请求数据库
   var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  if (html.indexOf('name="wg-frozen"') === -1) {
+    html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="wg-frozen" content="1">');
+  }
   var blob = new Blob([html], {type:'text/html;charset=utf-8'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -679,6 +689,7 @@ function renderMath(root){
       var v = n.nodeValue;
       if (!v) return;
       if (v.indexOf('\\') === -1 && v.indexOf('^') === -1 && v.indexOf('_') === -1) return;
+      if (!n.__orig) n.__orig = v;      // 记住原文，KaTeX 后到时可以还原
       n.nodeValue = latexToText(v);
     });
   })();
@@ -690,6 +701,15 @@ window.__katexReady = function(){
   var body = document.getElementById('body');
   if (!body || !window.renderMathInElement) return;
   if (body.querySelector('.katex')) return;
+  // 如果之前走过降级，先把原文还原，再交给 KaTeX 渲染
+  try {
+    var w = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+    var ns = [];
+    while (w.nextNode()) ns.push(w.currentNode);
+    ns.forEach(function(n){
+      if (n.__orig) { n.nodeValue = n.__orig; n.__orig = null; }
+    });
+  } catch (e) { /* ignore */ }
   try {
     window.renderMathInElement(body, {
       delimiters: [
@@ -704,15 +724,28 @@ window.__katexReady = function(){
   } catch (e) { /* ignore */ }
 };
 async function loadById(id){
-  var url = SB_URL + '/rest/v1/pages?id=eq.' + encodeURIComponent(id) + '&select=id,title,body';
-  var r = await fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  var rows = await r.json();
-  if (!rows || !rows.length) return null;
-  return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
+  // 走 RPC：只允许按 id 取单行，不能遍历整表
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 12000);
+  try {
+    var r = await fetch(SB_URL + '/rest/v1/rpc/get_page', {
+      method: 'POST',
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_id: id }),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var rows = await r.json();
+    if (!rows || !rows.length) return null;
+    return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 (async function(){
+  // 保存下来的离线 HTML 自带标记，不再请求数据库
+  if (document.querySelector('meta[name="wg-frozen"]')) return;
   var id = getParam('id');
   if (id) {
     try {
