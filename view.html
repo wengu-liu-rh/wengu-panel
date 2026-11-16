@@ -89,6 +89,7 @@ ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;b
 .note{margin:0 0 12px;padding:9px 12px;border-radius:10px;background:#fff7e6;color:#8a6d3b;font-size:12.5px;line-height:1.6;border:1px solid #f5e0b7}
 .expline{margin:6px 0 0;font-size:12.5px;line-height:1.7;color:#7b8794;background:#fafbfc;border-left:3px solid #dfe7ea;padding:6px 8px;border-radius:6px;display:none}
 .expline.show{display:block}
+.expline.noexp{color:#a6b0ba;background:#f7f9fa}
 .actions{display:flex;gap:10px;margin-top:18px}
 .actions button{flex:1;padding:12px;border-radius:13px;border:none;cursor:pointer;font-family:inherit;
   font-size:14px;font-weight:600;transition:.16s}
@@ -441,6 +442,7 @@ function renderSection(sec, idx){
         body += '</div>';
         body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
         if (b.exp) body += '<p class="expline">' + (/^(解析|解答|分析|说明)\s*[:：]/.test(b.exp) ? esc(b.exp) : '解析：' + esc(b.exp)) + '</p>';
+        else if (b.answer) body += '<p class="expline noexp">本题暂无解析</p>';
         if (!b.answer) body += '<p class="hintline">本题未附答案，请回到对话让温故批改。</p>';
       }
       body += '</div>';
