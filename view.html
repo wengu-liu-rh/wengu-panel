@@ -512,9 +512,9 @@ function fixMathSpaces(text){
   var s = String(text || '');
   var re = /(\$[^$]+\$|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$)/g;
   return s.replace(re, function(seg){
-    // 只在「数字或单字母变量 + 空格 + 数字/单字母」处补加号；
-    // 后面是反斜杠命令（\frac 等）或前面是 } 时一律不补，避免误插
-    return seg.replace(/([\dx])\s+(?=(\d|[a-zA-Z](?![a-zA-Z])))/g, '$1 + ');
+    // 只在「数字 / 单字母变量 / 右括号 + 空格 + 数字或单字母或 \frac」处补加号；
+    // 前面是 } 时一律不补（避免 lim_{x→0} 后面误插）
+    return seg.replace(/([\)\dx])\s+(?=(\d|[a-zA-Z](?![a-zA-Z])|\\frac))/g, '$1 + ');
   });
 }
 
