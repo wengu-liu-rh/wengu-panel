@@ -378,6 +378,10 @@ function render(payload){
   document.getElementById('title').textContent = title;
   document.title = title;
   var raw0 = String(payload.text || '');
+  // 跨行的 \[ ... \] 公式块合并成单行 $$...$$，否则会被拆成多段渲染不了
+  raw0 = raw0.replace(/\\\[([\s\S]*?)\\\]/g, function(_, body){
+    return '$$' + String(body).replace(/\s*\n\s*/g, ' ').trim() + '$$';
+  });
   // 先把文末「答案与解析」抽出来
   var extracted = extractAnswers(raw0);
   var raw = extracted.main;
