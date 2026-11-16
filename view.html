@@ -188,7 +188,10 @@ function extractAnswers(raw){
     if (!l) continue;
     // 先把「答案与解析：」这类标题的尾部冒号去掉再判断
     var headCore = l.replace(/[（(【\[].*$/, '').replace(/[）)】\]]+$/, '').replace(/[：:、，,。.]+$/, '').trim();
-    if (headCore.length <= 12 && HEAD_RE.test(headCore)) { candidates.push(i); continue; }
+    // 标题必须是"原本就短"的行；且「解析：正文」这种带内容的行不能当标题
+    var isShortTitle = l.length <= 24 && headCore.length <= 12;
+    var isExpLine = /^(解析|解答|分析|说明)\s*[:：]\s*\S/.test(l);
+    if (isShortTitle && !isExpLine && HEAD_RE.test(headCore)) { candidates.push(i); continue; }
     // 带冒号的是答案内容，不是小节标题
     if (/[：:]/.test(l)) continue;
     // 「答案：1.B 2.C」这类是答案行，不是小节标题，先排除
@@ -200,8 +203,8 @@ function extractAnswers(raw){
     var after = lines.slice(candidates[c] + 1).filter(function(x){ return x.trim(); }).length;
     if (after >= 1) { cut = candidates[c]; break; }
   }
-  // 兜底：没有标题，但末尾出现「解析：」开头的行，也从那里切开
-  if (cut < 0) {
+  // 兜底：没有标题、且正文里还没有任何「答案：X」时，才按末尾「解析：」切开
+  if (cut < 0 && !/(?:^|\n)\s*(?:\d+\s*[\.、]?\s*)?(?:正确)?答案\s*[:：]\s*[A-DＡ-Ｄ]/m.test(text)) {
     for (var j = Math.floor(lines.length * 0.5); j < lines.length; j++) {
       if (/^(?:解析|解答|分析|详解)\s*[:：]/.test(lines[j].trim())) { cut = j; break; }
     }
