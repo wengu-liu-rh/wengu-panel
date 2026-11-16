@@ -178,16 +178,25 @@ function extractAnswers(raw){
   var text = String(raw || '').replace(/\r/g, '');
   var lines = text.split('\n');
   var cut = -1;
+  // 答案区标题的严格形态：答案 / 答案解析 / 答案与解析 / 参考答案 / 解析 等
+  var HEAD_RE = /^(?:参考|正确)?答\s*案(?:\s*[与和及、]?\s*(?:解析|详解|说明|解答|提示|汇总|速查))?$|^(?:解析|详解)(?:\s*[与和及、]?\s*答案)?$/;
   for (var i = 0; i < lines.length; i++) {
-    var l = lines[i].replace(/#{1,6}\s*/g, '').trim();
+    var l = lines[i].replace(/#{1,6}\s*/g, '').replace(/\*\*/g, '').trim();
     if (!l) continue;
+    // 先把「答案与解析：」这类标题的尾部冒号去掉再判断
+    var headCore = l.replace(/[（(【\[].*$/, '').replace(/[）)】\]]+$/, '').replace(/[：:、，,。.]+$/, '').trim();
+    if (headCore.length <= 12 && HEAD_RE.test(headCore)) { cut = i; break; }
     // 带冒号的是答案内容，不是小节标题
     if (/[：:]/.test(l)) continue;
     // 「答案：1.B 2.C」这类是答案行，不是小节标题，先排除
     if (/^答案\s*[:：]\s*\d/.test(l)) continue;
     if (/\d\s*[\.、]\s*[A-DＡ-Ｄ]/.test(l)) continue;
-    // 标题只要以「答案/解析」开头就认，后面带括号说明无所谓
-    if (/^(?:答案[与和]?(?:解析)?|答案解析|参考答案|解析)\s*[（(【\[]?/.test(l) && l.length <= 20) { cut = i; break; }
+  }
+  // 兜底：没有标题，但末尾出现「解析：」开头的行，也从那里切开
+  if (cut < 0) {
+    for (var j = Math.floor(lines.length * 0.5); j < lines.length; j++) {
+      if (/^(?:解析|解答|分析|详解)\s*[:：]/.test(lines[j].trim())) { cut = j; break; }
+    }
   }
   var map = {}, main = text, list = [];
   var block = '';
