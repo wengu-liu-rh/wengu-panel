@@ -221,7 +221,7 @@ function extractAnswers(raw){
       || /(?:^|\n)\s*(?:解析|解答|分析)\s*[:：]/.test(peek);
     if (!looksLikeAnswer) cut = -1;
   }
-  var map = {}, main = text, list = [];
+  var map = {}, main = text, list = [], texts = [];
   var block = '';
   if (cut > -1) {
     main = lines.slice(0, cut).join('\n');
@@ -233,13 +233,13 @@ function extractAnswers(raw){
     lines.forEach(function(l){
       // 「答案：1.B 2.B」以及「1. 答案：B」两种都捞
       var isSummary = /^\s*(?:正确)?答案\s*[:：]/.test(l) && /(\d+)\s*[\.、:：\-]?\s*[A-DＡ-Ｄ]/.test(l);
-      var isNumbered = /^\s*\d+\s*[\.、]?\s*(?:正确)?答案\s*[:：]/.test(l);
+      var isNumbered = /^\s*\d+\s*[\.、]?\s*(?:参考|正确)?答案\s*[:：]/.test(l);
       if (isSummary || isNumbered) tail.push(l);
       else keep.push(l);
     });
     if (tail.length) { block = tail.join('\n'); main = keep.join('\n'); }
   }
-  if (!block) return { main: main, map: map, list: list };
+  if (!block) return { main: main, map: map, list: list, texts: texts };
 
   // 同一组内同题号重复出现时，以最后一次为准（模型常在末尾再汇总一遍正确答案）
   var subkey = '', slot = {};
@@ -277,7 +277,17 @@ function extractAnswers(raw){
       if (letters) put(n, letters, (m1[3] || '').trim());
       return;
     }
-    // 形式二：同一行里多个 1.B 2.C
+    // 文字型答案：2. 答案：单调递增区间为…（解答题参考答案）
+    var mt = s.match(/^(\d+)\s*[\.、]?\s*(?:参考)?答案\s*[:：]\s*([\s\S]+)$/);
+    if (mt) {
+      var tn = parseInt(mt[1], 10);
+      var txt = (mt[2] || "").trim();
+      if (tn >= 1 && tn <= 200 && txt) {
+        var mm2 = txt.match(/^([\s\S]*?)[。\.]?\s*(?:解析|解答|分析|说明)\s*[:：]\s*([\s\S]*)$/);
+        texts.push({ n: tn, text: (mm2 ? mm2[1] : txt).trim(), exp: (mm2 ? mm2[2] : '').trim() });
+      }
+      return;
+    }    // 形式二：同一行里多个 1.B 2.C
     var re = /(\d+)\s*[\.、:：\-]?\s*([A-DＡ-Ｄ])(?:\s*[、,，/]\s*([A-DＡ-Ｄ]))?/g;
     var mm, hit = false;
     while ((mm = re.exec(s)) !== null) {
@@ -296,7 +306,7 @@ function extractAnswers(raw){
       }
     }
   });
-  return { main: main, map: map, list: list };
+  return { main: main, map: map, list: list, texts: texts };
 }
 
 function isHeading(line){
@@ -382,7 +392,7 @@ function buildBlocks(items){
         blocks.push({ type: 'question', n: qno || autoQ, text: body, options: [], answer: null, exp: '' });
         i++; continue;
       }
-      blocks.push({ type: 'num', text: body });
+      blocks.push({ type: 'num', n: qno, text: body });
       i++; continue;
     }
 
@@ -552,6 +562,25 @@ function render(payload){
       }
     });
   }
+  // 解答题参考答案：把「编号与参考答案一致」的编号条目转成解答题卡片
+  var tcur = 0;
+  secs.forEach(function(s){
+    s.blocks.forEach(function(b){
+      if (b.type === 'shortq') {
+        if (tcur < extracted.texts.length && (!b.refs || !b.refs.length)) {
+          var tq = extracted.texts[tcur++];
+          b.refs = ['参考答案：' + tq.text].concat(tq.exp ? ['解析：' + tq.exp] : []);
+        }
+        return;
+      }
+      if (b.type !== 'num') return;
+      if (tcur < extracted.texts.length && b.n && extracted.texts[tcur].n === b.n) {
+        var tx = extracted.texts[tcur++];
+        b.type = 'shortq';
+        b.refs = ['参考答案：' + tx.text].concat(tx.exp ? ['解析：' + tx.exp] : []);
+      }
+    });
+  });
   if (!secs.length) {
     document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
     return;
