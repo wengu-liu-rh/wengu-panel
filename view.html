@@ -293,7 +293,8 @@ function extractAnswers(raw){
       if (lm) {
         put(n2, (lm[1].toUpperCase().match(/[A-D]/g) || []).join(','), (lm[2] || '').trim());
       } else {
-        texts.push({ n: n2, text: rest, exp: '' });
+        var mm3 = rest.match(/^([\s\S]*?)[。\.]?\s*(?:解析|解答|分析|说明)\s*[:：]\s*([\s\S]*)$/);
+        texts.push({ n: n2, text: (mm3 ? mm3[1] : rest).trim(), exp: (mm3 ? mm3[2] : '').trim() });
         pendingText = texts.length - 1;
       }
       return;
@@ -447,6 +448,28 @@ function buildBlocks(items){
       blocks.push({ type: 'question', n: autoQ, text: line, options: [], answer: null });
       i++; continue;
     }
+
+    // 散文式题目：题目：xxx / 请解答：xxx / 请问…（无编号）
+    var prose = line.match(/^(?:题目|问题|例题|练习)\s*[:：]\s*(.+)$/);
+    if (!prose) {
+      var looksAsk = /^(?:请|试)?(?:解答|计算|求解|求出|判断|证明|说明|请问)/.test(line) || /[？?]\s*$/.test(line);
+      if (looksAsk && line.length >= 10) prose = [line, line];
+    }
+    if (prose) {
+      var refs2 = [];
+      var k3 = i + 1;
+      while (k3 < items.length && /^(?:参考答案|答案|解答|解析|分析|说明)\s*[:：]/.test(items[k3])) {
+        refs2.push(items[k3]); k3++;
+      }
+      while (refs2.length && k3 < items.length && !/^\d+[\.、]/.test(items[k3]) && !/^[A-DＡ-Ｄ][\.、]/.test(items[k3]) && !/^(?:题目|练习|例题)\s*[:：]/.test(items[k3])) {
+        refs2.push(items[k3]); k3++;
+      }
+      autoQ += 1;
+      blocks.push({ type: 'shortq', n: autoQ, text: prose[1], refs: refs2 });
+      i = refs2.length ? k3 : i + 1;
+      continue;
+    }
+
     blocks.push({ type: 'para', text: line });
     i++;
   }
@@ -600,6 +623,8 @@ function render(payload){
         if (tcur < extracted.texts.length && (!b.refs || !b.refs.length)) {
           var tq = extracted.texts[tcur++];
           b.refs = ['参考答案：' + tq.text].concat(tq.exp ? ['解析：' + tq.exp] : []);
+        } else if (tcur < extracted.texts.length) {
+          tcur++;
         }
         return;
       }
