@@ -142,6 +142,7 @@ function decodePack(d){
 function normalize(text){
   var t = String(text || '')
     .replace(/\r/g, '')
+    .replace(/＋/g, '+')
     .replace(/#{1,6}\s*/g, '\n')
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/^\s*[-*•]\s+/gm, '- ')
