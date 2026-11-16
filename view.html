@@ -83,6 +83,8 @@ ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;b
 .ansline.show{display:block}
 .hintline{margin:6px 0 0;font-size:12.5px;color:#9aa7b2;display:none}
 .hintline.show{display:block}
+.expline{margin:6px 0 0;font-size:12.5px;line-height:1.7;color:#7b8794;background:#fafbfc;border-left:3px solid #dfe7ea;padding:6px 8px;border-radius:6px;display:none}
+.expline.show{display:block}
 .actions{display:flex;gap:10px;margin-top:18px}
 .actions button{flex:1;padding:12px;border-radius:13px;border:none;cursor:pointer;font-family:inherit;
   font-size:14px;font-weight:600;transition:.16s}
@@ -158,6 +160,64 @@ function normalize(text){
 }
 
 /* ---------- 解析 ---------- */
+
+// 从文末「答案与解析」区块提取答案 + 解析
+function extractAnswers(raw){
+  var text = String(raw || '').replace(/\r/g, '');
+  var lines = text.split('\n');
+  var cut = -1;
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].replace(/#{1,6}\s*/g, '').trim();
+    if (/^(答案与解析|参考答案|答案解析|答案区|答案)$/.test(l) || /^答案[与和]解析/.test(l)) { cut = i; break; }
+  }
+  var map = {}, main = text;
+  var block = '';
+  if (cut > -1) {
+    main = lines.slice(0, cut).join('\n');
+    block = lines.slice(cut + 1).join('\n');
+  } else {
+    // 没有独立区块时，把「答案：1.B 2.B」这类汇总行也捞出来
+    var tail = [];
+    var keep = [];
+    lines.forEach(function(l){
+      if (/^\s*(?:正确)?答案\s*[:：]/.test(l) && /(\d+)\s*[\.、:：\-]?\s*[A-DＡ-Ｄ]/.test(l) && /\d/.test(l)) tail.push(l);
+      else keep.push(l);
+    });
+    if (tail.length) { block = tail.join('\n'); main = keep.join('\n'); }
+  }
+  if (!block) return { main: main, map: map };
+
+  block.split('\n').forEach(function(line){
+    var s = line.replace(/#{1,6}\s*/g, '').trim();
+    if (!s) return;
+    // 形式一：1. 答案：B。解析……
+    var m1 = s.match(/^(\d+)\s*[\.、]?\s*[（(]?\s*(?:答案\s*[:：]?\s*)?([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[)）]?\s*[。\.、:：]?\s*([\s\S]*)$/);
+    if (m1) {
+      var n = parseInt(m1[1], 10);
+      var letters = (m1[2].toUpperCase().match(/[A-D]/g) || []).join(',');
+      if (letters) map[n] = { ans: letters, exp: (m1[3] || '').trim() };
+      return;
+    }
+    // 形式二：同一行里多个 1.B 2.C
+    var re = /(\d+)\s*[\.、:：\-]?\s*([A-DＡ-Ｄ])(?:\s*[、,，/]\s*([A-DＡ-Ｄ]))?/g;
+    var mm, hit = false;
+    while ((mm = re.exec(s)) !== null) {
+      var nn = parseInt(mm[1], 10);
+      var ls = [mm[2], mm[3]].filter(Boolean).map(function(x){ return x.toUpperCase(); }).join(',');
+      if (nn >= 1 && nn <= 100 && ls) { map[nn] = { ans: ls, exp: (map[nn] && map[nn].exp) || '' }; hit = true; }
+    }
+    if (!hit && s.length > 2) {
+      // 纯解析行：附加到上一个答案
+      var keys = Object.keys(map).map(Number).sort(function(a,b){ return a-b; });
+      if (keys.length) {
+        var last = keys[keys.length - 1];
+        map[last].exp = ((map[last].exp || '') + ' ' + s).trim();
+      }
+    }
+  });
+  return { main: main, map: map };
+}
+
 function isHeading(line){
   // 编号条目、要点符号，一律不当标题
   if (/^\d+[\.、]/.test(line)) return null;
@@ -210,25 +270,28 @@ function buildBlocks(items){
     var num = line.match(/^(\d+)[\.、]\s*(.+)$/);
     if (num) {
       var body = num[2];
+      var qno = parseInt(num[1], 10);
       // 如果后面紧跟选项，则本行是题干
       var j = i + 1, hasOpt = false;
       while (j < items.length && /^[A-DＡ-Ｄ][\.、]\s*/.test(items[j])) { hasOpt = true; break; }
       if (hasOpt) {
         autoQ += 1;
-        blocks.push({ type: 'question', n: autoQ, text: body, options: [], answer: null });
+        blocks.push({ type: 'question', n: qno || autoQ, text: body, options: [], answer: null, exp: '' });
         i++; continue;
       }
       blocks.push({ type: 'num', text: body });
       i++; continue;
     }
 
-    // 选项
-    var opt = line.match(/^([A-DＡ-Ｄ])[\.、]\s*(.+)$/);
-    if (opt) {
-      var q2 = lastQ();
-      if (!q2) { autoQ += 1; q2 = { type: 'question', n: autoQ, text: '', options: [], answer: null }; blocks.push(q2); }
-      q2.options.push({ k: opt[1].toUpperCase(), t: opt[2] });
-      i++; continue;
+    // 选项（解析/答案行不算选项）
+    if (!/^(?:正确)?答案|^解析|^【?(?:答案|解析)】?/.test(line)) {
+      var opt = line.match(/^([A-DＡ-Ｄ])[\.、]\s*(.+)$/);
+      if (opt) {
+        var q2 = lastQ();
+        if (!q2) { autoQ += 1; q2 = { type: 'question', n: autoQ, text: '', options: [], answer: null, exp: '' }; blocks.push(q2); }
+        q2.options.push({ k: opt[1].toUpperCase(), t: opt[2] });
+        i++; continue;
+      }
     }
 
     // 要点符号
@@ -291,6 +354,7 @@ function renderSection(sec, idx){
         });
         body += '</div>';
         body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
+        if (b.exp) body += '<p class="expline">解析：' + esc(b.exp) + '</p>';
         if (!b.answer) body += '<p class="hintline">本题页内未附答案，可在对话里让温故批改。</p>';
       }
       body += '</div>';
@@ -310,7 +374,10 @@ function render(payload){
   var title = payload.title || '可视化讲解';
   document.getElementById('title').textContent = title;
   document.title = title;
-  var raw = String(payload.text || '');
+  var raw0 = String(payload.text || '');
+  // 先把文末「答案与解析」抽出来
+  var extracted = extractAnswers(raw0);
+  var raw = extracted.main;
   // 去掉与标题重复的首行（模型常把标题再写一遍）
   var flatTitle = title.replace(/[·・\s]/g, '');
   var secs = parse(raw).map(function(s){
@@ -325,6 +392,14 @@ function render(payload){
         if (only.length <= 40 && /[「」【】]/.test(only)) s.blocks = [];
       }
     }
+    // 把文末解析里的答案按题号贴回每道题
+    s.blocks.forEach(function(b){
+      if (b.type === 'question') {
+        var hit = extracted.map[b.n];
+        if (hit && !b.answer) { b.answer = hit.ans; b.exp = hit.exp || ''; }
+        else if (hit && hit.exp && !b.exp) { b.exp = hit.exp; }
+      }
+    });
     return s;
   }).filter(function(s){ return s.blocks.length > 0; });
   if (!secs.length) {
@@ -349,6 +424,7 @@ function pick(el){
   var scope = (el.closest('.qblock')) || (group && group.parentNode) || document;
   var ansLine = scope.querySelector('.ansline');
   var hintLine = scope.querySelector('.hintline');
+  var expLine = scope.querySelector('.expline');
 
   if (answer) {
     var answers = answer.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
@@ -361,6 +437,7 @@ function pick(el){
       var m2 = el.querySelector('.mark'); if (m2) m2.textContent = '✗';
     }
     if (ansLine) { ansLine.textContent = '正确答案：' + answer.replace(/,/g,'、'); ansLine.classList.add('show'); }
+    if (expLine) expLine.classList.add('show');
     if (hintLine) hintLine.classList.remove('show');
   } else {
     el.classList.add('on');
