@@ -202,7 +202,12 @@ function extractAnswers(raw){
   if (!block) return { main: main, map: map };
 
   block.split('\n').forEach(function(line){
-    var s = line.replace(/#{1,6}\s*/g, '').trim();
+    var s = line
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/`/g, '')
+      .replace(/^[\s>*\-•]+/, '')
+      .trim();
     if (!s) return;
     // 形式一：1. 答案：B。解析……
     var m1 = s.match(/^(\d+)\s*[\.、]?\s*[（(]?\s*(?:答案\s*[:：]?\s*)?([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[)）]?\s*[。\.、:：]?\s*([\s\S]*)$/);
