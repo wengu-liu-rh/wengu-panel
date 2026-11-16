@@ -145,6 +145,8 @@ function normalize(text){
     .replace(/＋/g, '+')
     .replace(/#{1,6}\s*/g, '\n')
     .replace(/\*\*(.+?)\*\*/g, '$1')
+    // 去掉 Markdown 分隔线（--- 这类），否则会变成奇怪的要点
+    .replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '')
     // 选项前带列表符号（- A. xxx）时先去掉符号，否则会被当成要点
     .replace(/^\s*[-*•]\s+(?=[A-DＡ-Ｄ][\.、])/gm, '')
     .replace(/^\s*[-*•]\s+/gm, '- ')
@@ -235,8 +237,8 @@ function extractAnswers(raw){
       subkey = s;
       return;
     }
-    // 形式一：1. 答案：B。解析……
-    var m1 = s.match(/^(\d+)\s*[\.、]?\s*[（(]?\s*(?:答案\s*[:：]?\s*)?([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[)）]?\s*[。\.、:：]?\s*([\s\S]*)$/);
+    // 形式一：1. 答案：B / 1. 正确答案：B。解析……
+    var m1 = s.match(/^(\d+)\s*[\.、]?\s*[（(]?\s*(?:(?:正确)?答案\s*[:：]?\s*)?([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[)）]?\s*[。\.、:：]?\s*([\s\S]*)$/);
     if (m1) {
       var n = parseInt(m1[1], 10);
       var letters = (m1[2].toUpperCase().match(/[A-D]/g) || []).join(',');
