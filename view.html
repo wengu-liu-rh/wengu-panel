@@ -207,6 +207,21 @@ function extractAnswers(raw){
   }
   if (!block) return { main: main, map: map, list: list };
 
+  // 同一组内同题号重复出现时，以最后一次为准（模型常在末尾再汇总一遍正确答案）
+  var subkey = '', slot = {};
+  function put(n, letters, expTxt){
+    var k = subkey + '#' + n;
+    var item = { n: n, ans: letters, exp: expTxt || '' };
+    if (slot[k] !== undefined) {
+      var old = list[slot[k]];
+      list[slot[k]] = item;
+      if (!item.exp) item.exp = old.exp || '';
+    } else {
+      slot[k] = list.length;
+      list.push(item);
+    }
+  }
+
   block.split('\n').forEach(function(line){
     var s = line
       .replace(/#{1,6}\s*/g, '')
@@ -215,16 +230,17 @@ function extractAnswers(raw){
       .replace(/^[\s>*\-•]+/, '')
       .trim();
     if (!s) return;
+    // 小标题：短的、不含冒号、不以数字开头 → 切换到新的题号分组
+    if (s.length <= 14 && !/[：:]/.test(s) && !/^\d/.test(s) && !/^[A-DＡ-Ｄ][\.、]/.test(s)) {
+      subkey = s;
+      return;
+    }
     // 形式一：1. 答案：B。解析……
     var m1 = s.match(/^(\d+)\s*[\.、]?\s*[（(]?\s*(?:答案\s*[:：]?\s*)?([A-DＡ-Ｄ](?:\s*[、,，/]\s*[A-DＡ-Ｄ])*)\s*[)）]?\s*[。\.、:：]?\s*([\s\S]*)$/);
     if (m1) {
       var n = parseInt(m1[1], 10);
       var letters = (m1[2].toUpperCase().match(/[A-D]/g) || []).join(',');
-      if (letters) {
-        var expTxt = (m1[3] || '').trim();
-        map[n] = { ans: letters, exp: expTxt };
-        list.push({ ans: letters, exp: expTxt });
-      }
+      if (letters) put(n, letters, (m1[3] || '').trim());
       return;
     }
     // 形式二：同一行里多个 1.B 2.C
@@ -234,8 +250,7 @@ function extractAnswers(raw){
       var nn = parseInt(mm[1], 10);
       var ls = [mm[2], mm[3]].filter(Boolean).map(function(x){ return x.toUpperCase(); }).join(',');
       if (nn >= 1 && nn <= 100 && ls) {
-        map[nn] = { ans: ls, exp: (map[nn] && map[nn].exp) || '' };
-        list.push({ ans: ls, exp: '' });
+        put(nn, ls, '');
         hit = true;
       }
     }
