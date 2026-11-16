@@ -581,6 +581,18 @@ function render(payload){
       }
     });
   });
+  // 没匹配到题目的参考答案，单独成卡，避免内容丢失
+  if (tcur < extracted.texts.length) {
+    var extra = extracted.texts.slice(tcur).map(function(t){
+      return {
+        type: 'shortq',
+        n: t.n,
+        text: '（该题未编号，题意见上文）',
+        refs: ['参考答案：' + t.text].concat(t.exp ? ['解析：' + t.exp] : [])
+      };
+    });
+    secs.push({ title: '参考答案补充', blocks: extra });
+  }
   if (!secs.length) {
     document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
     return;
