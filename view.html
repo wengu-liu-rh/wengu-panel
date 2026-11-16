@@ -383,23 +383,36 @@ function renderSection(sec, idx){
       body += '<div class="step"><div class="n">STEP ' + (n+1) + '</div><div class="t">' + esc(b.text) + '</div></div>';
     });
     body += '</div>';
-  } else if (nums.length >= 2) {
-    body += '<ol class="num">' + nums.map(function(b){ return '<li>' + esc(b.text) + '</li>'; }).join('') + '</ol>';
   }
 
-  var usedNums = flowLike || nums.length >= 2;
   var bulletBuf = [];
+  var numBuf = [];
   function flushBullets(){
     if (!bulletBuf.length) return;
     body += '<ul class="kv">' + bulletBuf.map(function(t){ return '<li><span class="dotc"></span><span>' + esc(t) + '</span></li>'; }).join('') + '</ul>';
     bulletBuf = [];
   }
+  // 编号按出现位置成组渲染，避免"先渲染所有编号、再渲染题目"导致顺序错乱
+  function flushNums(){
+    if (!numBuf.length) return;
+    if (numBuf.length >= 2) {
+      body += '<ol class="num">' + numBuf.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ol>';
+    } else {
+      body += '<p class="para">' + esc(numBuf[0]) + '</p>';
+    }
+    numBuf = [];
+  }
+  function flushAll(){ flushBullets(); flushNums(); }
 
   sec.blocks.forEach(function(b){
-    if (b.type === 'num' && usedNums) return;
-    if (b.type === 'bullet') { bulletBuf.push(b.text); return; }
-    flushBullets();
-    if (b.type === 'num') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
+    if (b.type === 'num') {
+      if (flowLike) return;           // 已作为流程渲染
+      flushBullets();
+      numBuf.push(b.text);
+      return;
+    }
+    if (b.type === 'bullet') { flushNums(); bulletBuf.push(b.text); return; }
+    flushAll();
     if (b.type === 'para') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
     if (b.type === 'question') {
       body += '<div class="qblock">';
@@ -418,7 +431,7 @@ function renderSection(sec, idx){
       body += '</div>';
     }
   });
-  flushBullets();
+  flushAll();
 
   return '<div class="card" data-idx="' + idx + '">'
        +   '<h3 onclick="toggleCard(this)"><span class="badge ' + color + '">' + glyph + '</span>'
@@ -457,18 +470,28 @@ function render(payload){
     return s;
   }).filter(function(s){ return s.blocks.length > 0; });
 
-  // 按「题目出现顺序」依次贴答案：跨小节题号会重复（1. 2. 又 1.），按题号会错位
-  var cursor = 0;
+  // 贴答案：先按「题号数量与题目数量一致」的常规情况做一一对应（防止行内答案+文末答案混用时错位）；
+  // 数量对不上时，再退化为「按顺序贴给还没有答案的题」
+  var allQ = [];
   secs.forEach(function(s){
-    s.blocks.forEach(function(b){
-      if (b.type !== 'question' || b.answer) return;
+    s.blocks.forEach(function(b){ if (b.type === 'question') allQ.push(b); });
+  });
+  if (extracted.list.length && extracted.list.length === allQ.length) {
+    allQ.forEach(function(b, i){
+      b.answer = extracted.list[i].ans;
+      if (extracted.list[i].exp) b.exp = extracted.list[i].exp;
+    });
+  } else {
+    var cursor = 0;
+    allQ.forEach(function(b){
+      if (b.answer) return;
       if (cursor < extracted.list.length) {
         var hit = extracted.list[cursor++];
         b.answer = hit.ans;
         if (hit.exp) b.exp = hit.exp;
       }
     });
-  });
+  }
   if (!secs.length) {
     document.getElementById('body').innerHTML = '<div class="card"><div class="card-body"><p class="para">没有收到内容。</p></div></div>';
     return;
@@ -535,12 +558,13 @@ function latexToText(s){
     .replace(/\\\[|\\\]/g, '')
     .replace(/\$\$/g, '')
     .replace(/\$/g, '')
-    .replace(/\\sum\s*_\{?([^{}]*)\}?\s*\^\{?([^{}]*)\}?/g, '∑($1…$2)')
-    .replace(/\{([^{}]*)\}/g, '$1')
+    // 先处理 \frac \sqrt \text 等带花括号的命令，再去掉花括号
     .replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
     .replace(/\\sqrt\s*\{([^{}]*)\}/g, '√($1)')
     .replace(/\\mathrm\s*\{([^{}]*)\}/g, '$1')
     .replace(/\\text\s*\{([^{}]*)\}/g, '$1')
+    .replace(/\\sum\s*_\{?([^{}]*)\}?\s*\^\{?([^{}]*)\}?/g, '∑($1…$2)')
+    .replace(/\{([^{}]*)\}/g, '$1')
     .replace(/\\left|\\right|\\displaystyle/g, '')
     .replace(/\\cdot/g, '·').replace(/\\times/g, '×').replace(/\\div/g, '÷')
     .replace(/\\leq/g, '≤').replace(/\\geq/g, '≥').replace(/\\neq/g, '≠').replace(/\\approx/g, '≈')
