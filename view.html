@@ -536,9 +536,17 @@ function repairSegment(seg){
       while (j < seg.length && /\s/.test(seg[j])) j++;
       var prev = out.length ? out[out.length - 1] : '';
       var next = seg.slice(j);
-      var prevOperand = /[\d\)\]xXa-zA-Z!]/.test(prev);
+      var prevOperand = /[\d\)\]\}xXa-zA-Z!]/.test(prev);
       var nextOperand = /^(\d|[a-zA-Z](?![a-zA-Z])|\\frac|\\sqrt|\\sin|\\cos|\\tan|\\ln|\\log|\\sum|\\int)/.test(next);
       var skip = false;
+      // 前一个字符属于 LaTeX 命令（如 \to、\sin、\lim）时不补
+      if (/[a-zA-Z]/.test(prev)) {
+        var m = /[a-zA-Z]+$/.exec(out);
+        if (m) {
+          var before = out.slice(0, out.length - m[0].length);
+          if (before.slice(-1) === '\\') skip = true;
+        }
+      }
       if (prev === '}') {
         var g = groupBefore(out, out.length - 1);
         // 下标/极限/求和里的 } 后面不补（如 lim_{x \to 0} \frac）
