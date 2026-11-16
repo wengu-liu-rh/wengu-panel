@@ -178,6 +178,9 @@ function extractAnswers(raw){
   var cut = -1;
   for (var i = 0; i < lines.length; i++) {
     var l = lines[i].replace(/#{1,6}\s*/g, '').trim();
+    if (!l) continue;
+    // 带冒号的是答案内容，不是小节标题
+    if (/[：:]/.test(l)) continue;
     // 「答案：1.B 2.C」这类是答案行，不是小节标题，先排除
     if (/^答案\s*[:：]\s*\d/.test(l)) continue;
     if (/\d\s*[\.、]\s*[A-DＡ-Ｄ]/.test(l)) continue;
