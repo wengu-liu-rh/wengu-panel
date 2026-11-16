@@ -441,6 +441,37 @@ function buildBlocks(items){
     // 要点符号
     if (/^[-·•]\s*/.test(line)) { blocks.push({ type: 'bullet', text: line.replace(/^[-·•]\s*/,'') }); i++; continue; }
 
+    // Markdown 表格：| 题号 | 题干 | 选项A | … | 答案 |
+    if (/^\|/.test(line)) {
+      var rows = [];
+      while (i < items.length && /^\|/.test(items[i])) { rows.push(items[i]); i++; }
+      var header = rows[0] || '';
+      if (/题目|题干|选项|答案/.test(header)) {
+        rows.slice(1).forEach(function(r){
+          if (/^\|[\s\-:|]+\|?\s*$/.test(r)) return;
+          var cells = r.split('|').map(function(c){ return c.trim(); });
+          if (cells[0] === '') cells.shift();
+          if (cells[cells.length - 1] === '') cells.pop();
+          if (cells.length < 6) return;
+          if (!/^\d+$/.test(cells[0])) return;
+          var ansCell = (cells[cells.length - 1] || '').toUpperCase();
+          var am = ansCell.match(/[A-D]/);
+          blocks.push({
+            type: 'question',
+            n: parseInt(cells[0], 10),
+            text: cells[1],
+            options: [
+              { k: 'A', t: cells[2] }, { k: 'B', t: cells[3] },
+              { k: 'C', t: cells[4] }, { k: 'D', t: cells[5] }
+            ],
+            answer: am ? am[0] : null,
+            exp: ''
+          });
+        });
+      }
+      continue;
+    }
+
     // 普通段落（若紧跟选项，视为题干）
     var k2 = i + 1;
     if (k2 < items.length && /^[A-DＡ-Ｄ][\.、]\s*/.test(items[k2])) {
@@ -452,17 +483,19 @@ function buildBlocks(items){
     // 散文式题目：题目：xxx / 请解答：xxx / 请问…（无编号）
     var prose = line.match(/^(?:题目|问题|例题|练习)\s*[:：]\s*(.+)$/);
     if (!prose) {
-      var looksAsk = /^(?:请|试)?(?:解答|计算|求解|求出|判断|证明|说明|请问)/.test(line) || /[？?]\s*$/.test(line);
+      var looksAsk = /^(?:请|试)?(?:解答|计算|求解|求出|判断|证明|说明|请问|查看|完成)/.test(line) || /[？?]\s*$/.test(line);
       if (looksAsk && line.length >= 10) prose = [line, line];
     }
     if (prose) {
+      // 向后扫描：遇到下一条题目/表格就停；从「答案/解析」开始整段收进参考答案（提示部分跳过）
       var refs2 = [];
+      var started = false;
       var k3 = i + 1;
-      while (k3 < items.length && /^(?:参考答案|答案|解答|解析|分析|说明)\s*[:：]/.test(items[k3])) {
-        refs2.push(items[k3]); k3++;
-      }
-      while (refs2.length && k3 < items.length && !/^\d+[\.、]/.test(items[k3]) && !/^[A-DＡ-Ｄ][\.、]/.test(items[k3]) && !/^(?:题目|练习|例题)\s*[:：]/.test(items[k3])) {
-        refs2.push(items[k3]); k3++;
+      for (; k3 < items.length; k3++) {
+        var it = items[k3];
+        if (/^(?:题目|问题|例题|练习)\s*[:：]/.test(it) || /^\|/.test(it)) break;
+        if (!started && /^(?:参考答案|答案|解答|解析|分析|说明)\s*[:：]/.test(it)) started = true;
+        if (started) refs2.push(it);
       }
       autoQ += 1;
       blocks.push({ type: 'shortq', n: autoQ, text: prose[1], refs: refs2 });
