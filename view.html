@@ -527,6 +527,10 @@ function buildBlocks(items){
     blocks.push({ type: 'para', text: line });
     i++;
   }
+  // 统一清掉题干前的「题干：」「题目：」前缀
+  blocks.forEach(function(b){
+    if (b.text) b.text = String(b.text).replace(/^(?:题干|题目)\s*[:：]\s*/, '').trim();
+  });
   return blocks;
 }
 
