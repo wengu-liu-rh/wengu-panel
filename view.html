@@ -717,9 +717,10 @@ function render(payload){
 var SCORE_START = 0, SCORE_TIMER = null;
 function initScore(){
   var groups = document.querySelectorAll('.qblock .optgroup');
+  var shortq = document.querySelectorAll('.qblock.short');
   var bar = document.getElementById('scorebar');
   if (!bar) return;
-  if (!groups.length) { bar.style.display = 'none'; document.body.classList.remove('has-score'); return; }
+  if (!groups.length && !shortq.length) { bar.style.display = 'none'; document.body.classList.remove('has-score'); return; }
   SCORE_START = Date.now();
   bar.style.display = 'flex';
   document.body.classList.add('has-score');
@@ -731,21 +732,27 @@ function updateScore(){
   var bar = document.getElementById('scorebar');
   if (!bar || bar.style.display === 'none') return;
   var groups = document.querySelectorAll('.qblock .optgroup');
-  var total = groups.length, right = 0, wrong = 0;
+  var shortq = document.querySelectorAll('.qblock.short');
+  var sec = Math.floor((Date.now() - SCORE_START) / 1000);
+  var mm = Math.floor(sec / 60), ss = sec % 60;
+  var tm = '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
+  if (!groups.length) {
+    bar.innerHTML = '<span>共 ' + shortq.length + ' 道解答题（参考答案已折叠）</span>' + tm;
+    return;
+  }
+  var right = 0, wrong = 0;
   Array.prototype.forEach.call(groups, function(g){
     if (g.querySelector('.opt.wrong')) wrong++;
     else if (g.querySelector('.opt.right')) right++;
   });
+  var total = groups.length;
   var done = right + wrong;
   var pct = done ? Math.round(right / done * 100) : 0;
-  var sec = Math.floor((Date.now() - SCORE_START) / 1000);
-  var mm = Math.floor(sec / 60), ss = sec % 60;
   bar.innerHTML =
     '<span>共 ' + total + ' 题</span>' +
     '<span class="ok">✓ ' + right + '</span>' +
     '<span class="bad">✗ ' + wrong + '</span>' +
-    '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' +
-    '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
+    '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' + tm;
 }
 
 /* ---------- 朗读 ---------- */
