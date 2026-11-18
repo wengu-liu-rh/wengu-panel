@@ -748,8 +748,11 @@ function updateScore(){
   var total = groups.length;
   var done = right + wrong;
   var pct = done ? Math.round(right / done * 100) : 0;
+  var head = shortq.length
+    ? ('选择 ' + total + ' · 解答 ' + shortq.length)
+    : ('共 ' + total + ' 题');
   bar.innerHTML =
-    '<span>共 ' + total + ' 题</span>' +
+    '<span>' + head + '</span>' +
     '<span class="ok">✓ ' + right + '</span>' +
     '<span class="bad">✗ ' + wrong + '</span>' +
     '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' + tm;
