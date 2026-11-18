@@ -725,6 +725,10 @@ function initScore(){
   bar.style.display = 'flex';
   document.body.classList.add('has-score');
   updateScore();
+  setTimeout(function(){
+    var h = bar.offsetHeight || 0;
+    if (h > 0) document.body.style.paddingBottom = (h + 18) + 'px';
+  }, 60);
   if (SCORE_TIMER) clearInterval(SCORE_TIMER);
   SCORE_TIMER = setInterval(updateScore, 1000);
 }
