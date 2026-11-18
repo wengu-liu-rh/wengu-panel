@@ -741,7 +741,7 @@ function updateScore(){
   var mm = Math.floor(sec / 60), ss = sec % 60;
   var tm = '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
   if (!groups.length) {
-    bar.innerHTML = '<span>解答题 ' + shortq.length + ' 道 · 不计分（参考思路已折叠）</span>' + tm;
+    bar.innerHTML = '<span>解答 ' + shortq.length + ' 道 · 不计分</span>' + tm;
     return;
   }
   var right = 0, wrong = 0;
@@ -753,7 +753,7 @@ function updateScore(){
   var done = right + wrong;
   var pct = done ? Math.round(right / done * 100) : 0;
   var head = shortq.length
-    ? ('计分 ' + total + ' 题（选择）· 解答 ' + shortq.length + ' 题不计分')
+    ? ('选择 ' + total + ' 计分 · 解答 ' + shortq.length + ' 不计分')
     : ('共 ' + total + ' 题');
   bar.innerHTML =
     '<span>' + head + '</span>' +
