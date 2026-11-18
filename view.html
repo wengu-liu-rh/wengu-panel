@@ -797,8 +797,12 @@ function copyWrong(){
       items.push('第' + (qn ? qn.textContent.trim() : '') + '题：' + (qt ? qt.textContent.trim() : '') + '（我选了 ' + myK + '，正确答案 ' + ans.replace(/,/g, '、') + '）');
     });
     if (!items.length) return;
-    var s = '我做错了这套练习里的几道题，请针对这些知识点出 3 道同类型的新题：\n'
-      + '要求：不要重复原题、不要只换数字，题干和选项都要是新的；出好后做成可点击页面。\n\n'
+    var s = '我做错了这套练习里的几道题，请出 3 道同类型但"换情境"的新题：\n'
+      + '硬性要求：\n'
+      + '1) 不要出现原题题干，也不要把原题只改数字；\n'
+      + '2) 每题必须换一个函数、条件或问法（例如把 x→0 换成 x→1，把等价无穷小换成比较阶）；\n'
+      + '3) 每题解析里用一句话说明它和原题的区别；\n'
+      + '4) 出好后做成可点击页面。\n\n'
       + '做错的题：\n' + items.join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(s);
