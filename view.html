@@ -570,8 +570,9 @@ function renderSection(sec, idx){
     flushAll();
     if (b.type === 'shortq') {
       body += '<div class="qblock short">';
-      body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
-            + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button>' + '<button class="cpq" title="复制题目" onclick="copyQ(this)">📋</button></div>';
+      var tools = b.placeholder ? ''
+        : '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button><button class="cpq" title="复制题目" onclick="copyQ(this)">📋</button>';
+      body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>' + tools + '</div>';
       if (b.refs && b.refs.length) {
         var refHtml = b.refs.map(function(t){
           return '<p class="refline">' + esc(String(t).replace(/^(?:参考)?答案\s*[:：]\s*/, '').replace(/^(?:解析|解答|分析|说明)\s*[:：]\s*/, '')) + '</p>';
@@ -685,12 +686,25 @@ function render(payload){
       }
     });
   });
-  // 没匹配到题目的参考答案，单独成卡，避免内容丢失
+  // 第二轮：题号对不上（如全篇连续编号 4、5 而本节从 1 开始）时，按出现顺序补到还没答案的编号题上
+  if (tcur < extracted.texts.length) {
+    secs.forEach(function(s){
+      s.blocks.forEach(function(b){
+        if (tcur >= extracted.texts.length) return;
+        if (b.type !== 'num') return;
+        var tx2 = extracted.texts[tcur++];
+        b.type = 'shortq';
+        b.refs = ['参考答案：' + tx2.text].concat(tx2.exp ? ['解析：' + tx2.exp] : []);
+      });
+    });
+  }
+  // 还没匹配上的，单独成卡，避免内容丢失
   if (tcur < extracted.texts.length) {
     var extra = extracted.texts.slice(tcur).map(function(t){
       return {
         type: 'shortq',
         n: t.n,
+        placeholder: true,
         text: '（该题未编号，题意见上文）',
         refs: ['参考答案：' + t.text].concat(t.exp ? ['解析：' + t.exp] : [])
       };
