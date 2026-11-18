@@ -497,6 +497,10 @@ function buildBlocks(items){
       i++; continue;
     }
 
+    // 去掉模型加的装饰标签：「新题1」「第1题」这类纯标签行
+    if (/^(?:新题|第\s*\d+\s*题)\s*\d*$/.test(line)) { i++; continue; }
+    // 去掉题干前的「题干：」「题目：」前缀
+    line = line.replace(/^(?:题干|题目)\s*[:：]\s*/, '');
     // 散文式题目：题目：xxx / 请解答：xxx / 请问…（无编号）
     var prose = line.match(/^(?:题目|问题|例题|练习)\s*[:：]\s*(.+)$/);
     if (!prose) {
