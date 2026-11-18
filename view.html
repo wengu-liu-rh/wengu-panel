@@ -576,7 +576,7 @@ function renderSection(sec, idx){
         var refHtml = b.refs.map(function(t){
           return '<p class="refline">' + esc(String(t).replace(/^(?:参考)?答案\s*[:：]\s*/, '').replace(/^(?:解析|解答|分析|说明)\s*[:：]\s*/, '')) + '</p>';
         }).join('');
-        body += '<details class="refans"><summary>看参考答案</summary><div class="refbody">' + refHtml + '</div></details>';
+        body += '<details class="refans"><summary>看参考思路（非标准答案，仅供对照）</summary><div class="refbody">' + refHtml + '</div></details>';
       } else {
         body += '<p class="hintline show">本题为解答题，可在对话里让温故批改。</p>';
       }
@@ -741,7 +741,7 @@ function updateScore(){
   var mm = Math.floor(sec / 60), ss = sec % 60;
   var tm = '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
   if (!groups.length) {
-    bar.innerHTML = '<span>共 ' + shortq.length + ' 道解答题（参考答案已折叠）</span>' + tm;
+    bar.innerHTML = '<span>解答题 ' + shortq.length + ' 道 · 不计分（参考思路已折叠）</span>' + tm;
     return;
   }
   var right = 0, wrong = 0;
@@ -753,7 +753,7 @@ function updateScore(){
   var done = right + wrong;
   var pct = done ? Math.round(right / done * 100) : 0;
   var head = shortq.length
-    ? ('选择 ' + total + ' · 解答 ' + shortq.length)
+    ? ('计分 ' + total + ' 题（选择）· 解答 ' + shortq.length + ' 题不计分')
     : ('共 ' + total + ' 题');
   bar.innerHTML =
     '<span>' + head + '</span>' +
