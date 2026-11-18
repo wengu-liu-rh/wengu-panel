@@ -144,6 +144,7 @@ var SB_URL = 'https://stefvsokishbdowhushy.supabase.co';
 var SB_KEY = 'sb_publishable_oeWZ9eyPqcBvO28W3wUJFQ_IdWSQBBi';
 var COLORS = ['b1','b2','b3','b4'];
 var GLYPH = ['①','②','③','④','⑤','⑥','⑦','⑧'];
+var VC2_BUILD = '20261118-prose-answer-fix'; // 散文题不再按位置错贴答案
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getParam(n){
@@ -519,7 +520,7 @@ function buildBlocks(items){
         if (started) refs2.push(it);
       }
       autoQ += 1;
-      blocks.push({ type: 'shortq', n: autoQ, text: prose[1], refs: refs2 });
+      blocks.push({ type: 'shortq', n: autoQ, text: prose[1], refs: refs2, prose: true });
       i = refs2.length ? k3 : i + 1;
       continue;
     }
@@ -676,11 +677,17 @@ function render(payload){
       }
     });
   }
-  // 解答题参考答案：把「编号与参考答案一致」的编号条目转成解答题卡片
+  // 解答题参考答案：编号题按题号匹配；散文题（无编号 shortq）先挂起，最后只在数量完全相等时按顺序分配
   var tcur = 0;
+  var proseQ = [];
   secs.forEach(function(s){
     s.blocks.forEach(function(b){
       if (b.type === 'shortq') {
+        if (b.prose) {
+          // 散文题没有可靠题号：绝不按位置硬塞，先收集待分配
+          if (!b.refs || !b.refs.length) proseQ.push(b);
+          return;
+        }
         if (tcur < extracted.texts.length && (!b.refs || !b.refs.length)) {
           var tq = extracted.texts[tcur++];
           b.refs = ['参考答案：' + tq.text].concat(tq.exp ? ['解析：' + tq.exp] : []);
@@ -707,6 +714,15 @@ function render(payload){
         b.type = 'shortq';
         b.refs = ['参考答案：' + tx2.text].concat(tx2.exp ? ['解析：' + tx2.exp] : []);
       });
+    });
+  }
+  // 散文题：只有剩余参考答案数量与待分配散文题数量完全相等时才按顺序贴；
+  // 数量对不上时一律不贴，保留「请让温故批改」提示，避免把答案安到别的题上
+  var proseLeft = extracted.texts.length - tcur;
+  if (proseQ.length && proseLeft === proseQ.length) {
+    proseQ.forEach(function(b){
+      var tp = extracted.texts[tcur++];
+      b.refs = ['参考答案：' + tp.text].concat(tp.exp ? ['解析：' + tp.exp] : []);
     });
   }
   // 还没匹配上的，单独成卡，避免内容丢失
