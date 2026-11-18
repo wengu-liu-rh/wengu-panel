@@ -66,9 +66,22 @@ ul.kv{margin:8px 0 0;padding-left:0;list-style:none}
 ul.kv li{display:flex;gap:9px;align-items:flex-start;margin:9px 0;font-size:15px;line-height:1.7}
 ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;background:var(--orange)}
 /* 题目 */
-.qtitle{font-weight:600;font-size:15px;margin:14px 0 6px;line-height:1.6;display:flex;gap:8px}
+.qtitle{font-weight:600;font-size:15px;margin:14px 0 6px;line-height:1.6;display:flex;gap:8px;align-items:flex-start}
 .qtitle .qn{flex:none;width:22px;height:22px;border-radius:50%;background:#2f5d62;color:#fff;font-size:12px;
   display:flex;align-items:center;justify-content:center}
+.qtitle .qtext{flex:1}
+.qtitle .tts{flex:none;border:none;background:#eef4f3;color:#3d6b66;border-radius:8px;width:26px;height:26px;
+  font-size:13px;line-height:1;cursor:pointer;padding:0;margin-top:1px}
+.qtitle .tts:hover{background:#dcebe8}
+/* 成绩条 */
+.scorebar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;align-items:center;justify-content:center;
+  gap:14px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(24,60,58,.96);
+  color:#eaf6f4;font-size:13px;box-shadow:0 -4px 14px rgba(0,0,0,.12);flex-wrap:wrap}
+.scorebar span{white-space:nowrap}
+.scorebar .ok{color:#7ee2b8;font-weight:700}
+.scorebar .bad{color:#ff9d9d;font-weight:700}
+.scorebar .tm{color:#b9cfcb}
+body.has-score{padding-bottom:72px}
 .opt{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin:8px 0;padding:12px 14px;
   border-radius:12px;border:1.5px solid #e6e0d4;background:#fffdf8;font-size:15px;cursor:pointer;
   font-family:inherit;color:var(--ink);transition:.16s}
@@ -122,6 +135,7 @@ ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;b
   </div>
   <div class="foot">由「温故」生成 · 吉林工商学院 AI 智能体大赛</div>
 </div>
+<div id="scorebar" class="scorebar"></div>
 <script>
 var SB_URL = 'https://stefvsokishbdowhushy.supabase.co';
 var SB_KEY = 'sb_publishable_oeWZ9eyPqcBvO28W3wUJFQ_IdWSQBBi';
@@ -556,7 +570,8 @@ function renderSection(sec, idx){
     flushAll();
     if (b.type === 'shortq') {
       body += '<div class="qblock short">';
-      body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span>' + esc(b.text) + '</span></div>';
+      body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
+            + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button></div>';
       if (b.refs && b.refs.length) {
         var refHtml = b.refs.map(function(t){
           return '<p class="refline">' + esc(String(t).replace(/^(?:参考)?答案\s*[:：]\s*/, '').replace(/^(?:解析|解答|分析|说明)\s*[:：]\s*/, '')) + '</p>';
@@ -571,7 +586,8 @@ function renderSection(sec, idx){
     if (b.type === 'para') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
     if (b.type === 'question') {
       body += '<div class="qblock">';
-      if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span>' + esc(b.text) + '</span></div>';
+      if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
+        + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button></div>';
       if (b.options.length) {
         var gid = 'q' + idx + '_' + b.n;
         body += '<div class="optgroup" data-gid="' + gid + '" data-answer="' + (b.answer || '') + '">';
@@ -694,6 +710,59 @@ function render(payload){
   document.getElementById('body').innerHTML = noteHtml + secs.map(renderSection).join('');
   // 公式渲染（KaTeX 可用就用它，否则降级为纯文本）
   setTimeout(function(){ renderMath(document.getElementById('body')); }, 60);
+  setTimeout(initScore, 80);
+}
+
+/* ---------- 成绩条 ---------- */
+var SCORE_START = 0, SCORE_TIMER = null;
+function initScore(){
+  var groups = document.querySelectorAll('.qblock .optgroup');
+  var bar = document.getElementById('scorebar');
+  if (!bar) return;
+  if (!groups.length) { bar.style.display = 'none'; document.body.classList.remove('has-score'); return; }
+  SCORE_START = Date.now();
+  bar.style.display = 'flex';
+  document.body.classList.add('has-score');
+  updateScore();
+  if (SCORE_TIMER) clearInterval(SCORE_TIMER);
+  SCORE_TIMER = setInterval(updateScore, 1000);
+}
+function updateScore(){
+  var bar = document.getElementById('scorebar');
+  if (!bar || bar.style.display === 'none') return;
+  var groups = document.querySelectorAll('.qblock .optgroup');
+  var total = groups.length, right = 0, wrong = 0;
+  Array.prototype.forEach.call(groups, function(g){
+    if (g.querySelector('.opt.wrong')) wrong++;
+    else if (g.querySelector('.opt.right')) right++;
+  });
+  var done = right + wrong;
+  var pct = done ? Math.round(right / done * 100) : 0;
+  var sec = Math.floor((Date.now() - SCORE_START) / 1000);
+  var mm = Math.floor(sec / 60), ss = sec % 60;
+  bar.innerHTML =
+    '<span>共 ' + total + ' 题</span>' +
+    '<span class="ok">✓ ' + right + '</span>' +
+    '<span class="bad">✗ ' + wrong + '</span>' +
+    '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' +
+    '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
+}
+
+/* ---------- 朗读 ---------- */
+function speak(btn){
+  try {
+    if (!window.speechSynthesis) return;
+    var t = btn.closest('.qtitle') ? btn.closest('.qtitle').querySelector('.qtext') : null;
+    var txt = t ? t.textContent : '';
+    if (!txt) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(txt);
+    u.lang = /[\u4e00-\u9fa5]/.test(txt) ? 'zh-CN' : 'en-US';
+    u.rate = 1;
+    window.speechSynthesis.speak(u);
+    btn.textContent = '🔉';
+    setTimeout(function(){ btn.textContent = '🔊'; }, 1200);
+  } catch (e) { /* 不支持就静默 */ }
 }
 
 /* ---------- 交互 ---------- */
@@ -732,6 +801,7 @@ function pick(el){
     if (mk) mk.textContent = '✓';
     if (hintLine) hintLine.classList.add('show');
   }
+  updateScore();
 }
 
 async function downloadHtml(){
