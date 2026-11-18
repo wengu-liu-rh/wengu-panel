@@ -70,9 +70,9 @@ ul.kv li .dotc{width:8px;height:8px;border-radius:50%;flex:none;margin-top:8px;b
 .qtitle .qn{flex:none;width:22px;height:22px;border-radius:50%;background:#2f5d62;color:#fff;font-size:12px;
   display:flex;align-items:center;justify-content:center}
 .qtitle .qtext{flex:1}
-.qtitle .tts{flex:none;border:none;background:#eef4f3;color:#3d6b66;border-radius:8px;width:26px;height:26px;
+.qtitle .tts,.qtitle .cpq{flex:none;border:none;background:#eef4f3;color:#3d6b66;border-radius:8px;width:26px;height:26px;
   font-size:13px;line-height:1;cursor:pointer;padding:0;margin-top:1px}
-.qtitle .tts:hover{background:#dcebe8}
+.qtitle .tts:hover,.qtitle .cpq:hover{background:#dcebe8}
 /* 成绩条 */
 .scorebar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;align-items:center;justify-content:center;
   gap:14px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(24,60,58,.96);
@@ -571,7 +571,7 @@ function renderSection(sec, idx){
     if (b.type === 'shortq') {
       body += '<div class="qblock short">';
       body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
-            + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button></div>';
+            + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button>' + '<button class="cpq" title="复制题目" onclick="copyQ(this)">📋</button></div>';
       if (b.refs && b.refs.length) {
         var refHtml = b.refs.map(function(t){
           return '<p class="refline">' + esc(String(t).replace(/^(?:参考)?答案\s*[:：]\s*/, '').replace(/^(?:解析|解答|分析|说明)\s*[:：]\s*/, '')) + '</p>';
@@ -587,7 +587,7 @@ function renderSection(sec, idx){
     if (b.type === 'question') {
       body += '<div class="qblock">';
       if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
-        + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button></div>';
+        + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button>' + '<button class="cpq" title="复制题目" onclick="copyQ(this)">📋</button></div>';
       if (b.options.length) {
         var gid = 'q' + idx + '_' + b.n;
         body += '<div class="optgroup" data-gid="' + gid + '" data-answer="' + (b.answer || '') + '">';
@@ -779,6 +779,33 @@ function speak(btn){
   } catch (e) { /* 不支持就静默 */ }
 }
 
+/* ---------- 复制题目（方便贴到对话里让温故讲） ---------- */
+function copyQ(btn){
+  try {
+    var blk = btn.closest('.qblock');
+    if (!blk) return;
+    var t = blk.querySelector('.qtext');
+    var qn = blk.querySelector('.qn');
+    var lines = ['第' + (qn ? qn.textContent.trim() : '') + '题：' + (t ? t.textContent.trim() : '')];
+    var opts = blk.querySelectorAll('.optgroup .opt');
+    Array.prototype.forEach.call(opts, function(o){
+      var k = o.querySelector('.k');
+      var spans = o.querySelectorAll('span');
+      var txt = spans.length > 1 ? spans[1].textContent : '';
+      lines.push((k ? k.textContent.trim() : '') + '. ' + txt.trim());
+    });
+    var s = lines.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(s);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = s; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    btn.textContent = '✅';
+    setTimeout(function(){ btn.textContent = '📋'; }, 1200);
+  } catch (e) { /* 静默 */ }
+}
 /* ---------- 交互 ---------- */
 function toggleCard(h){
   var card = h.closest('.card');
