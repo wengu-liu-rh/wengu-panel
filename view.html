@@ -4,9 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>温故 · 可视化讲解</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous" onload="window.__katexReady&&window.__katexReady()"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous" onload="window.__katexReady&&window.__katexReady()"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous" onerror="this.onerror=null;this.href='https://registry.npmmirror.com/katex/0.16.9/files/dist/katex.min.css'">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous" onload="window.__katexReady&&window.__katexReady()" onerror="(function(){var s=document.createElement('script');s.defer=true;s.src='https://registry.npmmirror.com/katex/0.16.9/files/dist/katex.min.js';s.onload=function(){window.__katexReady&&window.__katexReady()};document.head.appendChild(s);})()"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous" onload="window.__katexReady&&window.__katexReady()" onerror="(function(){var s=document.createElement('script');s.defer=true;s.src='https://registry.npmmirror.com/katex/0.16.9/files/dist/contrib/auto-render.min.js';s.onload=function(){window.__katexReady&&window.__katexReady()};document.head.appendChild(s);})()"></script>
+<script>
+// 双保险：8 秒内 KaTeX 还没加载出来，就换国内镜像再试
+setTimeout(function(){
+  if (typeof window.katex === 'undefined') {
+    var s = document.createElement('script');
+    s.src = 'https://registry.npmmirror.com/katex/0.16.9/files/dist/katex.min.js';
+    s.onload = function(){
+      var a = document.createElement('script');
+      a.src = 'https://registry.npmmirror.com/katex/0.16.9/files/dist/contrib/auto-render.min.js';
+      a.onload = function(){ window.__katexReady && window.__katexReady(); };
+      document.head.appendChild(a);
+    };
+    document.head.appendChild(s);
+  }
+}, 8000);
+</script>
 <style>
 :root{
   --ink:#1f2d3a; --ink2:#5b6b7a; --line:#e8e2d6;
