@@ -1131,30 +1131,44 @@ window.__katexReady = function(){
   } catch (e) { /* ignore */ }
 };
 async function loadById(id){
-  // 走 RPC：只允许按 id 取单行，不能遍历整表
-  var signal;
-  var timer = null;
-  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
-    signal = AbortSignal.timeout(12000);
-  } else if (typeof AbortController !== 'undefined') {
-    var ctrl = new AbortController();
-    timer = setTimeout(function(){ ctrl.abort(); }, 12000);
-    signal = ctrl.signal;
+  // 走 RPC：只允许按 id 取单行，不能遍历整表；超时自动重试一次
+  async function once(timeoutMs){
+    var signal, timer = null;
+    if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+      signal = AbortSignal.timeout(timeoutMs);
+    } else if (typeof AbortController !== 'undefined') {
+      var ctrl = new AbortController();
+      timer = setTimeout(function(){ ctrl.abort(); }, timeoutMs);
+      signal = ctrl.signal;
+    }
+    try {
+      var r = await fetch(SB_URL + '/rest/v1/rpc/get_page', {
+        method: 'POST',
+        headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_id: id }),
+        signal: signal
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var rows = await r.json();
+      return rows;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
-  try {
-    var r = await fetch(SB_URL + '/rest/v1/rpc/get_page', {
-      method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_id: id }),
-      signal: signal
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var rows = await r.json();
-    if (!rows || !rows.length) return null;
-    return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
-  } finally {
-    if (timer) clearTimeout(timer);
+  var rows = null;
+  var lastErr = null;
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      rows = await once(attempt === 0 ? 15000 : 20000);
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt === 0) await new Promise(function(res){ setTimeout(res, 800); });
+    }
   }
+  if (rows === null) throw lastErr || new Error('读取失败');
+  if (!rows.length) return null;
+  return { title: rows[0].title || '可视化讲解', text: rows[0].body || '' };
 }
 
 (async function(){
@@ -1168,7 +1182,7 @@ async function loadById(id){
       render({ title:'页面不存在', text:'没找到这个页面，链接可能被写错了。回对话里发一句「再来 2 道不一样的题，并做成可点击页面，把新链接发给我」，或点题目页面右下角的「再来几题」，就会重新生成。' });
       return;
     } catch (e) {
-      var msg = (e && e.name === 'AbortError') ? '加载超时，请刷新页面重试。' : ('读取失败：' + (e && e.message ? e.message : e));
+      var msg = '网络有点慢，没取到内容。点下面的「重新加载」再试一次；还不行就回对话里让它重新生成。';
       render({ title:'加载失败', text: msg });
       return;
     }
