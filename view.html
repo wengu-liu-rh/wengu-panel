@@ -1085,14 +1085,9 @@ function repairSegment(seg){
       }
       if (prevOperand && nextOperand && !skip) {
         // 紧跟着三角函数/对数等函数名 → 这是乘法，不是加法
-        var depth = 0;
-        for (var q = 0; q < out.length; q++) {
-          if (out[q] === '(' || out[q] === '（') { if (out[q - 1] !== '\\') depth++; }
-          else if (out[q] === ')' || out[q] === '）') { if (out[q - 1] !== '\\') depth--; }
-        }
-        var isFn = /^\\(?:sin|cos|tan|cot|sec|csc|ln|log|exp|arcsin|arccos|arctan)/.test(next);
-        if (isFn && depth <= 0) out += ' \\times ';
-        else out += ' + ';
+        // 只在连续 2 个以上空格时补加号；单空格不动
+        if ((j - i) >= 2) out += ' + ';
+        else out += seg.slice(i, j);
       }
       else out += seg.slice(i, j);
       i = j;
