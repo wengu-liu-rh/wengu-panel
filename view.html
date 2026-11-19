@@ -922,6 +922,11 @@ function copyQ(btn){
       var txt = spans.length > 1 ? spans[1].textContent : '';
       lines.push((k ? k.textContent.trim() : '') + '. ' + txt.trim());
     });
+    var ansBox = blk.querySelector('.optgroup');
+    if (ansBox) {
+      var ansVal = ansBox.getAttribute('data-answer') || '';
+      if (ansVal) lines.push('答案：' + ansVal.replace(/,/g, '、'));
+    }
     var s = lines.join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(s);
@@ -1078,7 +1083,11 @@ function repairSegment(seg){
         // 下标/极限/求和里的 } 后面不补（如 lim_{x \to 0} \frac）
         if (g && /\\to|\\lim|\\sum|\\int|_|\^/.test(g)) skip = true;
       }
-      if (prevOperand && nextOperand && !skip) out += ' + ';
+      if (prevOperand && nextOperand && !skip) {
+        // 紧跟着三角函数/对数等函数名 → 这是乘法，不是加法
+        if (/^\\(?:sin|cos|tan|cot|sec|csc|ln|log|exp|arcsin|arccos|arctan)/.test(next)) out += ' \\times ';
+        else out += ' + ';
+      }
       else out += seg.slice(i, j);
       i = j;
       continue;
