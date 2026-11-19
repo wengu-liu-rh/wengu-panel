@@ -191,23 +191,31 @@ function normalize(text){
     // 去掉 Markdown 分隔线（--- 这类），否则会变成奇怪的要点
     .replace(/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm, '')
     // 选项前带列表符号（- A. xxx）时先去掉符号，否则会被当成要点
-    .replace(/^\s*[-*•]\s+(?=[A-DＡ-Ｄ][\.、])/gm, '')
+    .replace(/^\s*[-*•]\s+(?=[A-DＡ-Ｄ][\.、\)）])/gm, '')
     .replace(/^\s*[-*•]\s+/gm, '- ')
     // 只有「→ 答案/正确答案」这种箭头才拆行（lim(x→0) 里的箭头不能拆）
     .replace(/\s*[→➜➤]\s*(?=(?:正确)?答案)/g, '\n')
     // 「正确答案：X」「答案：X」也单独成行
     .replace(/((?:正确)?答案\s*[:：])/g, '\n$1');
+  // 一行里塞了多道题：以题号开头的行，遇到「 2. 」「 3. 」这类题号就拆行
+  t = t.split('\n').map(function(line){
+    var s = line.trim();
+    if (!/^\d{1,2}[\.、]/.test(s)) return line;
+    var marks = s.match(/\s\d{1,2}[\.、]\s+\S/g);
+    if (!marks || marks.length < 1) return line;
+    return s.split(/(?=\s\d{1,2}[\.、]\s+\S)/).map(function(x){ return x.trim(); }).filter(Boolean).join('\n');
+  }).join('\n');
   // 把一行里的多个选项拆开：A. xx B. xx C. xx D. xx
   return t.split('\n').map(function(line){
     var s = line.trim();
     if (!s) return '';
     // 题干后紧跟内联选项：在 A. 前断行
-    if (!/^[A-DＡ-Ｄ][\.、]/.test(s)) {
+    if (!/^[A-DＡ-Ｄ][\.、\)）]/.test(s)) {
       s = s.replace(/\s*([AＡ][\.、])/, '\n$1');
     }
-    var marks = s.match(/(^|\s)[A-DＡ-Ｄ][\.、]\s*/g);
+    var marks = s.match(/(^|\s)[A-DＡ-Ｄ][\.、\)）]\s*/g);
     if (marks && marks.length >= 2) {
-      var parts = s.split(/(?=(?:^|\s)[A-DＡ-Ｄ][\.、]\s*)/).map(function(x){ return x.trim(); }).filter(Boolean);
+      var parts = s.split(/(?=(?:^|\s)[A-DＡ-Ｄ][\.、\)）]\s*)/).map(function(x){ return x.trim(); }).filter(Boolean);
       if (parts.length >= 2) return parts.join('\n');
     }
     return s;
@@ -312,12 +320,12 @@ function extractAnswers(raw){
       .trim();
     if (!s) return;
     // 上一条文字答案的续行（简答题的多行要点）
-    if (pendingText >= 0 && !/^\d+\s*[\.、]/.test(s) && !/^[A-DＡ-Ｄ][\.、]/.test(s) && !/[：:]$/.test(s)) {
+    if (pendingText >= 0 && !/^\d+\s*[\.、]/.test(s) && !/^[A-DＡ-Ｄ][\.、\)）]/.test(s) && !/[：:]$/.test(s)) {
       texts[pendingText].text = (texts[pendingText].text + ' ' + s).trim();
       return;
     }
     // 小标题：短的、不含冒号、不以数字开头 → 切换到新的题号分组
-    if (s.length <= 14 && !/[：:]/.test(s) && !/^\d/.test(s) && !/^[A-DＡ-Ｄ][\.、]/.test(s)) {
+    if (s.length <= 14 && !/[：:]/.test(s) && !/^\d/.test(s) && !/^[A-DＡ-Ｄ][\.、\)）]/.test(s)) {
       subkey = s;
       return;
     }
@@ -381,7 +389,7 @@ function isHeading(line){
   // 编号条目、要点符号，一律不当标题
   if (/^\d+[\.、]/.test(line)) return null;
   if (/^[-·•]/.test(line)) return null;
-  if (/^[A-DＡ-Ｄ][\.、]/.test(line)) return null;
+  if (/^[A-DＡ-Ｄ][\.、\)）]/.test(line)) return null;
   if (/^【.+】$/.test(line)) return line.replace(/^【|】$/g,'');
   if (/^[一二三四五六七八九十]+、.{1,24}$/.test(line)) return line;
   if (/^第[一二三四五六七八九十]+[章节部分].{0,20}$/.test(line)) return line;
@@ -444,7 +452,7 @@ function buildBlocks(items){
         kk++;
       }
       // 解析后面可能还有续行（不以数字/选项开头的内容）
-      while (refs.length && kk < items.length && !/^\d+[\.、]/.test(items[kk]) && !/^[A-DＡ-Ｄ][\.、]/.test(items[kk])) {
+      while (refs.length && kk < items.length && !/^\d+[\.、]/.test(items[kk]) && !/^[A-DＡ-Ｄ][\.、\)）]/.test(items[kk])) {
         refs.push(items[kk]);
         kk++;
       }
@@ -454,7 +462,7 @@ function buildBlocks(items){
       }
       // 情形二：后面紧跟选项 → 选择题
       var j = i + 1, hasOpt = false;
-      while (j < items.length && /^[A-DＡ-Ｄ][\.、]\s*/.test(items[j])) { hasOpt = true; break; }
+      while (j < items.length && /^[A-DＡ-Ｄ][\.、\)）]\s*/.test(items[j])) { hasOpt = true; break; }
       if (hasOpt) {
         autoQ += 1;
         blocks.push({ type: 'question', n: qno || autoQ, text: body, options: [], answer: null, exp: '' });
@@ -466,7 +474,7 @@ function buildBlocks(items){
 
     // 选项（解析/答案行不算选项）
     if (!/^(?:正确)?答案|^解析|^【?(?:答案|解析)】?/.test(line)) {
-      var opt = line.match(/^([A-DＡ-Ｄ])[\.、]\s*(.+)$/);
+      var opt = line.match(/^([A-DＡ-Ｄ])[\.、\)）]\s*(.+)$/);
       if (opt) {
         var q2 = lastQ();
         if (!q2) { autoQ += 1; q2 = { type: 'question', n: autoQ, text: '', options: [], answer: null, exp: '' }; blocks.push(q2); }
@@ -511,7 +519,7 @@ function buildBlocks(items){
 
     // 普通段落（若紧跟选项，视为题干）
     var k2 = i + 1;
-    if (k2 < items.length && /^[A-DＡ-Ｄ][\.、]\s*/.test(items[k2])) {
+    if (k2 < items.length && /^[A-DＡ-Ｄ][\.、\)）]\s*/.test(items[k2])) {
       autoQ += 1;
       blocks.push({ type: 'question', n: autoQ, text: line, options: [], answer: null });
       i++; continue;
