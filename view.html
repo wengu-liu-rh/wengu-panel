@@ -776,6 +776,12 @@ function initScore(){
   if (SCORE_TIMER) clearInterval(SCORE_TIMER);
   SCORE_TIMER = setInterval(updateScore, 1000);
 }
+function syncBarPad(bar){
+  try {
+    var h = bar ? (bar.offsetHeight || 0) : 0;
+    if (h > 0) document.body.style.paddingBottom = (h + 18) + 'px';
+  } catch (e) {}
+}
 function updateScore(){
   var bar = document.getElementById('scorebar');
   if (!bar || bar.style.display === 'none') return;
@@ -786,6 +792,7 @@ function updateScore(){
   var tm = '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
   if (!groups.length) {
     bar.innerHTML = '<span>解答 ' + shortq.length + ' 道 · 不计分</span>' + tm + '<button class="sb-btn ghost" onclick="copyMore()">再来几题</button>';
+    syncBarPad(bar);
     return;
   }
   var right = 0, wrong = 0;
@@ -806,6 +813,7 @@ function updateScore(){
     '<span class="ok">✓ ' + right + '</span>' +
     '<span class="bad">✗ ' + wrong + '</span>' +
     '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' + tm + wrongBtn + moreBtn;
+  syncBarPad(bar);
 }
 
 /* ---------- 复制错题（贴回对话让温故出同类新题） ---------- */
