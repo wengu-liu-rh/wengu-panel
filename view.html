@@ -134,6 +134,7 @@ body.has-score{padding-bottom:72px}
   <div id="body" class="grid"></div>
   <div class="actions">
     <button class="act-main" onclick="downloadHtml()">保存为 HTML</button>
+    <button class="act-ghost" onclick="copyMore()">再来几题</button>
     <button class="act-ghost" onclick="location.reload()">重新加载</button>
   </div>
   <div class="foot">由「温故」生成 · 吉林工商学院 AI 智能体大赛</div>
@@ -837,6 +838,21 @@ function copyWrong(){
     }
     var btn = document.querySelector('.scorebar .sb-btn');
     if (btn) { var old = btn.textContent; btn.textContent = '已复制 ✅'; setTimeout(function(){ btn.textContent = old; }, 1400); }
+  } catch (e) { /* 静默 */ }
+}
+/* ---------- 再来几题（复制有效话术，贴回对话即可） ---------- */
+function copyMore(){
+  try {
+    var s = '再来 2 道不一样的题，并做成可点击页面，把新链接发给我';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(s);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = s; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    var btn = document.querySelector('button[onclick="copyMore()"]');
+    if (btn) { var old = btn.textContent; btn.textContent = '已复制 ✅'; setTimeout(function(){ btn.textContent = old; }, 1500); }
   } catch (e) { /* 静默 */ }
 }
 /* ---------- 朗读 ---------- */
