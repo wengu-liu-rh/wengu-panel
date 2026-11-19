@@ -85,6 +85,8 @@ body.has-score{padding-bottom:72px}
 .scorebar .sb-btn{border:none;border-radius:8px;background:#ffb703;color:#1c2b2a;font-weight:700;font-size:13px;
   padding:6px 12px;cursor:pointer;font-family:inherit}
 .scorebar .sb-btn:hover{background:#ffc43d}
+.scorebar .sb-btn.ghost{background:#eaf6f4;color:#1c2b2a}
+.scorebar .sb-btn.ghost:hover{background:#d7eeea}
 .opt{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin:8px 0;padding:12px 14px;
   border-radius:12px;border:1.5px solid #e6e0d4;background:#fffdf8;font-size:15px;cursor:pointer;
   font-family:inherit;color:var(--ink);transition:.16s}
@@ -797,12 +799,13 @@ function updateScore(){
   var head = shortq.length
     ? ('选择 ' + total + ' 计分 · 解答 ' + shortq.length + ' 不计分')
     : ('共 ' + total + ' 题');
+  var moreBtn = '<button class="sb-btn ghost" onclick="copyMore()">再来几题</button>';
   var wrongBtn = wrong > 0 ? '<button class="sb-btn" onclick="copyWrong()">复制错题</button>' : '';
   bar.innerHTML =
     '<span>' + head + '</span>' +
     '<span class="ok">✓ ' + right + '</span>' +
     '<span class="bad">✗ ' + wrong + '</span>' +
-    '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' + tm + wrongBtn;
+    '<span>' + (done ? '正确率 ' + pct + '%' : '待作答') + '</span>' + tm + wrongBtn + moreBtn;
 }
 
 /* ---------- 复制错题（贴回对话让温故出同类新题） ---------- */
@@ -1162,7 +1165,7 @@ async function loadById(id){
     try {
       var p = await loadById(id);
       if (p) { render(p); return; }
-      render({ title:'页面不存在', text:'没找到这个页面。可能是链接被写错了（模型有时会自己编链接），请在对话里让温故重新生成一次。' });
+      render({ title:'页面不存在', text:'没找到这个页面，链接可能被写错了。回对话里发一句「再来 2 道不一样的题，并做成可点击页面，把新链接发给我」，或点题目页面右下角的「再来几题」，就会重新生成。' });
       return;
     } catch (e) {
       var msg = (e && e.name === 'AbortError') ? '加载超时，请刷新页面重试。' : ('读取失败：' + (e && e.message ? e.message : e));
