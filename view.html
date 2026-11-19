@@ -752,6 +752,17 @@ function render(payload){
       b.refs = ['参考答案：' + tp.text].concat(tp.exp ? ['解析：' + tp.exp] : []);
     });
   }
+  // 练习页：没有选项的编号题（解答题）也做成卡片，别落成"要点"列表
+  var hasChoice = allQ.length > 0;
+  var titleTxt = String((payload && payload.title) || '');
+  var isQuizPage = hasChoice || /(练习|自测|习题|作业|试卷|题目)/.test(titleTxt);
+  if (isQuizPage) {
+    secs.forEach(function(s){
+      s.blocks.forEach(function(b){
+        if (b.type === 'num') { b.type = 'shortq'; b.refs = b.refs || []; }
+      });
+    });
+  }
   // 还没匹配上的，单独成卡，避免内容丢失
   if (tcur < extracted.texts.length) {
     var extra = extracted.texts.slice(tcur).map(function(t){
