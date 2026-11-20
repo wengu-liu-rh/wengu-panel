@@ -798,7 +798,7 @@ function render(payload){
   }
   // 还没匹配上的，单独成卡，避免内容丢失
   if (tcur < extracted.texts.length) {
-    var extra = extracted.texts.slice(tcur).map(function(t){
+    var extra = extracted.texts.slice(tcur).filter(function(t){ return !/存疑/.test(t.text || ""); }).map(function(t){
       return {
         type: 'shortq',
         n: t.n,
