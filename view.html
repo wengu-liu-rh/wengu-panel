@@ -116,6 +116,7 @@ body.has-score{padding-bottom:72px}
 .opt.wrong{border-color:var(--red);background:var(--red-l);box-shadow:0 0 0 3px rgba(185,28,28,.10)}
 .opt.wrong .k{background:var(--red);color:#fff}
 .opt .mark{margin-left:auto;font-size:14px;font-weight:700}
+.ansline.badans{color:#b45309;font-weight:600}
 .ansline{margin:6px 0 0;font-size:13px;color:var(--green);display:none}
 .ansline.show{display:block}
 .hintline{margin:6px 0 0;font-size:12.5px;color:#9aa7b2;display:none}
@@ -630,15 +631,26 @@ function renderSection(sec, idx){
         + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button>' + '<button class="cpq" title="复制题目" onclick="copyQ(this)">📋</button></div>';
       if (b.options.length) {
         var gid = 'q' + idx + '_' + b.n;
-        body += '<div class="optgroup" data-gid="' + gid + '" data-answer="' + (b.answer || '') + '">';
+        var badAns = false;
+        if (b.answer) {
+          var keys = b.options.map(function(o){ return String(o.k).toUpperCase(); });
+          var parts = String(b.answer).split(',').map(function(x){ return x.trim().toUpperCase(); }).filter(Boolean);
+          badAns = !parts.length || parts.some(function(x){ return keys.indexOf(x) === -1; });
+        }
+        body += '<div class="optgroup" data-gid="' + gid + '" data-answer="' + (badAns ? '' : (b.answer || '')) + '">';
         b.options.forEach(function(o){
           body += '<button class="opt" data-k="' + o.k + '" onclick="pick(this)"><span class="k">' + o.k + '</span><span>' + esc(o.t) + '</span><span class="mark"></span></button>';
         });
         body += '</div>';
-        body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
-        if (b.exp) body += '<p class="expline">' + (/^(解析|解答|分析|说明)\s*[:：]/.test(b.exp) ? esc(b.exp) : '解析：' + esc(b.exp)) + '</p>';
-        else if (b.answer) body += '<p class="expline noexp">本题暂无解析</p>';
-        if (!b.answer) body += '<p class="hintline">本题未附答案，请回到对话让温故批改。</p>';
+        if (badAns) {
+          body += '<p class="ansline show badans">⚠ 本题选项可能有误：正确答案不在选项里，不计分</p>';
+          body += '<p class="hintline show">建议跳过这题；回对话说「这题选项有问题，请换一题」</p>';
+        } else {
+          body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
+          if (b.exp) body += '<p class="expline">' + (/^(解析|解答|分析|说明)\s*[:：]/.test(b.exp) ? esc(b.exp) : '解析：' + esc(b.exp)) + '</p>';
+          else if (b.answer) body += '<p class="expline noexp">本题暂无解析</p>';
+          if (!b.answer) body += '<p class="hintline">本题未附答案，请回到对话让温故批改。</p>';
+        }
       }
       body += '</div>';
     }
