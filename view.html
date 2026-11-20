@@ -599,6 +599,7 @@ function renderSection(sec, idx){
   }
   function flushAll(){ flushBullets(); flushNums(); }
 
+  var secHadOptions = false;
   sec.blocks.forEach(function(b){
     if (b.type === 'num') {
       if (flowLike) return;           // 已作为流程渲染
@@ -625,10 +626,11 @@ function renderSection(sec, idx){
       return;
     }
     if (b.type === 'para') {
-      if (/^答案\s*[:：]\s*[^A-D\s]/.test(b.text) && idx > 0) { return; }
+      if (/^答案\s*[:：]/.test(b.text) && secHadOptions) { return; }
       body += '<p class="para">' + esc(b.text) + '</p>'; return;
     }
     if (b.type === 'question') {
+      secHadOptions = !!(b.options && b.options.length);
       body += '<div class="qblock">';
       if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
         + '<button class="tts" title="朗读题干" onclick="speak(this)">🔊</button>' + '<button class="cpq" title="复制题目" onclick="copyQ(this)">📋</button></div>';
