@@ -624,7 +624,10 @@ function renderSection(sec, idx){
       body += '</div>';
       return;
     }
-    if (b.type === 'para') { body += '<p class="para">' + esc(b.text) + '</p>'; return; }
+    if (b.type === 'para') {
+      if (/^答案\s*[:：]\s*[^A-D\s]/.test(b.text) && idx > 0) { return; }
+      body += '<p class="para">' + esc(b.text) + '</p>'; return;
+    }
     if (b.type === 'question') {
       body += '<div class="qblock">';
       if (b.text) body += '<div class="qtitle"><span class="qn">' + b.n + '</span><span class="qtext">' + esc(b.text) + '</span>'
@@ -649,7 +652,7 @@ function renderSection(sec, idx){
           body += '<p class="ansline">正确答案：' + (b.answer ? b.answer.replace(/,/g,'、') : '') + '</p>';
           if (b.exp) body += '<p class="expline">' + (/^(解析|解答|分析|说明)\s*[:：]/.test(b.exp) ? esc(b.exp) : '解析：' + esc(b.exp)) + '</p>';
           else if (b.answer) body += '<p class="expline noexp">本题暂无解析</p>';
-          if (!b.answer) body += '<p class="hintline">本题未附答案，或选项里没有正确答案；请回对话让温故批改，或说「这题选项有问题，请换一题」。</p>';
+          if (!b.answer) body += '<p class="hintline show">本题未附答案，或选项里没有正确答案；请回对话让温故批改，或说「这题选项有问题，请换一题」。</p>';
         }
       }
       body += '</div>';
