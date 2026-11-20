@@ -445,7 +445,8 @@ function buildBlocks(items){
     var num = line.match(/^(\d+)[\.、]\s*(.+)$/);
     if (num) {
       var headTxt = num[2].replace(/\*/g, "").trim();
-      if (headTxt.length <= 16 && (/[：:]$/.test(headTxt) || /^[一二三四五六七八九十]+[、.]/.test(headTxt))) { i++; continue; }
+      var headBold = /\*\*\s*$/.test(num[2].trim());
+      if (headTxt.length <= 20 && (/[：:]$/.test(headTxt) || headBold || /^[一二三四五六七八九十]+[、.]/.test(headTxt) || /(情境|模块|题型|例题|知识点|练习\d*)/.test(headTxt))) { i++; continue; }
       var body = num[2];
       var qno = parseInt(num[1], 10);
       // 情形一：后面紧跟「答案：/解析：」→ 这是解答题（没有选项），把参考答案收在一起
