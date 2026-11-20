@@ -708,7 +708,20 @@ function render(payload){
   secs.forEach(function(s){
     s.blocks.forEach(function(b){ if (b.type === 'question') allQ.push(b); });
   });
-  if (extracted.list.length && extracted.list.length === allQ.length) {
+  // 有题号就按题号配；只有全部没题号时才按顺序兜底（避免把第 3 题答案塞给第 1 题）
+  var numbered = extracted.list.filter(function(x){ return x.n; });
+  if (numbered.length) {
+    allQ.forEach(function(b){
+      if (b.answer) return;
+      for (var i = 0; i < extracted.list.length; i++) {
+        if (extracted.list[i].n === b.n) {
+          b.answer = extracted.list[i].ans;
+          if (extracted.list[i].exp) b.exp = extracted.list[i].exp;
+          break;
+        }
+      }
+    });
+  } else if (extracted.list.length === allQ.length) {
     allQ.forEach(function(b, i){
       b.answer = extracted.list[i].ans;
       if (extracted.list[i].exp) b.exp = extracted.list[i].exp;
