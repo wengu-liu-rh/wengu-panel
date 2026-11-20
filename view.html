@@ -153,7 +153,7 @@ body.has-score{padding-bottom:72px}
   <div id="body" class="grid"></div>
   <div class="actions">
     <button class="act-main" onclick="downloadHtml()">保存为 HTML</button>
-    <button class="act-ghost" title="复制生成新练习页的话术，回对话粘贴即可" onclick="copyMore()">再来一页题</button>
+    <button class="act-ghost" onclick="copyMore()">再来几题</button>
     <button class="act-ghost" onclick="location.reload()">重新加载</button>
   </div>
   <div class="foot">由「温故」生成 · 吉林工商学院 AI 智能体大赛</div>
@@ -859,7 +859,7 @@ function updateScore(){
   var mm = Math.floor(sec / 60), ss = sec % 60;
   var tm = '<span class="tm">用时 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</span>';
   if (!groups.length) {
-    bar.innerHTML = '<span>解答 ' + shortq.length + ' 道 · 不计分</span>' + tm + '<button class="sb-btn ghost" title="复制生成新练习页的话术，回对话粘贴即可" onclick="copyMore()">再来一页题</button>';
+    bar.innerHTML = '<span>解答 ' + shortq.length + ' 道 · 不计分</span>' + tm + '<button class="sb-btn ghost" onclick="copyMore()">再来几题</button>';
     syncBarPad(bar);
     return;
   }
@@ -874,7 +874,7 @@ function updateScore(){
   var head = shortq.length
     ? ('选择 ' + total + ' 计分 · 解答 ' + shortq.length + ' 不计分')
     : ('共 ' + total + ' 题');
-  var moreBtn = '<button class="sb-btn ghost" title="复制生成新练习页的话术，回对话粘贴即可" onclick="copyMore()">再来一页题</button>';
+  var moreBtn = '<button class="sb-btn ghost" onclick="copyMore()">再来几题</button>';
   var wrongBtn = wrong > 0 ? '<button class="sb-btn" onclick="copyWrong()">复制错题</button>' : '';
   bar.innerHTML =
     '<span>' + head + '</span>' +
