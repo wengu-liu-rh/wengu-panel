@@ -461,7 +461,14 @@ function buildBlocks(items){
         kk++;
       }
       if (refs.length) {
-        blocks.push({ type: 'shortq', n: qno, text: body, refs: refs });
+        // 只有像“题”的条目才做成解答卡片；公式/知识点保持列表，参考内容降为备注
+        var looksQ = /[？?]/.test(body) || /^\s*(求|计算|证明|判断|已知|设|若|下列|试|解|求值|化简)/.test(body);
+        if (looksQ) {
+          blocks.push({ type: 'shortq', n: qno, text: body, refs: refs });
+        } else {
+          blocks.push({ type: 'num', n: qno, text: body });
+          refs.forEach(function(r){ blocks.push({ type: 'bullet', text: r }); });
+        }
         i = kk; continue;
       }
       // 情形二：后面紧跟选项 → 选择题
