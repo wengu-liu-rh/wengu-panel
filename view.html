@@ -482,7 +482,12 @@ function buildBlocks(items){
       if (opt) {
         var q2 = lastQ();
         if (!q2) { autoQ += 1; q2 = { type: 'question', n: autoQ, text: '', options: [], answer: null, exp: '' }; blocks.push(q2); }
-        q2.options.push({ k: opt[1].toUpperCase(), t: opt[2] });
+        // 同一行里可能塞了多个选项（A. x B. y C. z D. w）
+        var segs = line.split(/\s+(?=[A-DＡ-Ｄ][\.、\)）])/);
+        segs.forEach(function(seg){
+          var m2 = seg.match(/^([A-DＡ-Ｄ])[\.、\)）]\s*([\s\S]+)$/);
+          if (m2) q2.options.push({ k: m2[1].toUpperCase(), t: m2[2].trim() });
+        });
         i++; continue;
       }
     }
@@ -785,14 +790,19 @@ function render(payload){
       b.refs = ['参考答案：' + tp.text].concat(tp.exp ? ['解析：' + tp.exp] : []);
     });
   }
-  // 练习页：没有选项的编号题（解答题）也做成卡片，别落成"要点"列表
+  // 练习页：只有「练习/自测」小节里、并且像题的编号条目才做成解答卡片；知识点讲解保持列表
   var hasChoice = allQ.length > 0;
   var titleTxt = String((payload && payload.title) || '');
-  var isQuizPage = hasChoice || /(题|练习|自测|习题|作业|试卷|测验|考卷)/.test(titleTxt);
+  var isQuizPage = hasChoice || /(练习|自测|习题|作业|试卷|测验|考卷|题目)/.test(titleTxt);
   if (isQuizPage) {
     secs.forEach(function(s){
+      var quizSec = /(练习|习题|自测|测验|作业|试卷|考卷|选择题|计算题|解答题)/.test(String(s.title || ''));
+      if (!quizSec) return;
       s.blocks.forEach(function(b){
-        if (b.type === 'num') { b.type = 'shortq'; b.refs = b.refs || []; }
+        if (b.type !== 'num') return;
+        if (/[？?]|求|计算|证明|判断|下列|已知|若|设/.test(String(b.text || ''))) {
+          b.type = 'shortq'; b.refs = b.refs || [];
+        }
       });
     });
   }
