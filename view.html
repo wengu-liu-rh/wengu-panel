@@ -607,15 +607,6 @@ function renderSection(sec, idx){
   }
   function flushAll(){ flushBullets(); flushNums(); }
 
-  // 知识点/讲解类小节：即使模型塞了选项和答案，也按普通列表渲染
-  if (/(知识点|讲解|要点|概念|框架|梳理)/.test(String(sec.title || ''))) {
-    sec.blocks.forEach(function(b){
-      if (b.type === 'question' || b.type === 'shortq') {
-        b.type = 'num'; b.options = []; b.answer = ''; b.refs = [];
-      }
-    });
-  }
-
   var secHadOptions = false;
   sec.blocks.forEach(function(b){
     if (b.type === 'num') {
