@@ -690,6 +690,8 @@ function render(payload){
   document.getElementById('title').textContent = title;
   document.title = title;
   var raw0 = String(payload.text || '');
+  // 模板占位内容（模型没真读到题目/图片时常见）：只提示，不计分
+  var isPlaceholder = /【[^】]*(具体|如：|示例|知识点)[^】]*】|占位符/.test(raw0);
   // 跨行的 \[ ... \] 公式块合并成单行 $$...$$，否则会被拆成多段渲染不了
   raw0 = raw0.replace(/\\\[([\s\S]*?)\\\]/g, function(_, body){
     return '$$' + String(body).replace(/\s*\n\s*/g, ' ').trim() + '$$';
@@ -836,10 +838,18 @@ function render(payload){
   var noteHtml = (missing > 0 && allQ.length > 0)
     ? '<p class="note">本次只提供了 ' + (allQ.length - missing) + ' / ' + allQ.length + ' 道题的答案，其余题目请回到对话让温故补全。</p>'
     : '';
+  if (isPlaceholder) {
+    noteHtml = '<p class="note" style="border-left:4px solid #d97706;color:#92400e;font-weight:600">⚠ 这一页是模板占位内容（没有真正读到题目或图片），不计分。请回对话重新发一次，或把文字直接发给我。</p>' + noteHtml;
+  }
   document.getElementById('body').innerHTML = noteHtml + secs.map(renderSection).join('');
   // 公式渲染（KaTeX 可用就用它，否则降级为纯文本）
   setTimeout(function(){ renderMath(document.getElementById('body')); }, 60);
-  setTimeout(initScore, 80);
+  if (isPlaceholder) {
+    var sb = document.getElementById('scorebar');
+    if (sb) sb.style.display = 'none';
+  } else {
+    setTimeout(initScore, 80);
+  }
 }
 
 /* ---------- 成绩条 ---------- */
